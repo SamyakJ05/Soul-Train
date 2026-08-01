@@ -27,7 +27,9 @@ is read directly by pandas.
   saves a better chance to return to the rotation.
 - **Your Stats:** displays top tracks, artists, and genres over four weeks, six
   months, or long-term listening history. Existing users must reconnect once to
-  approve the added `user-top-read` permission.
+  approve the added `user-top-read` and `user-read-recently-played` permissions.
+  Spotify does not expose a lifetime minutes total, so the dashboard clearly
+  labels its minutes figure as an estimate across the latest 50 playback records.
 
 Spotify tokens are kept in the signed browser session. For a public deployment,
 set a strong `FLASK_SECRET_KEY`, use HTTPS, and replace the cookie session with a

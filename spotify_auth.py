@@ -13,6 +13,7 @@ SCOPES = " ".join(
         "user-library-read",
         "user-read-private",
         "user-top-read",
+        "user-read-recently-played",
     ]
 )
 SPOTIFY_ENV_KEYS = (

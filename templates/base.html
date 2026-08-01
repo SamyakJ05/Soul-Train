@@ -6,7 +6,8 @@
   <meta name="theme-color" content="#0a0a0b">
   <meta name="description" content="Shape a mood journey and save it directly to Spotify with Soul Train.">
   <title>{% block title %}Soul Train{% endblock %}</title>
-  <link rel="icon" href="{{ url_for('static', filename='images/FLOGO.png') }}">
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/soul-train-mark-v2.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/soul-train-mark-v2.png') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
   <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
@@ -14,7 +15,7 @@
   <a class="skip-link" href="#main">Skip to content</a>
   <header class="site-header">
     <a class="brand" href="{{ url_for('page') }}" aria-label="Soul Train home">
-      <img src="{{ url_for('static', filename='images/FLOGO.png') }}" alt="">
+      <img src="{{ url_for('static', filename='images/soul-train-mark-v2.png') }}" alt="" width="34" height="34">
       <span>Soul Train</span>
     </a>
     <nav aria-label="Main navigation">
