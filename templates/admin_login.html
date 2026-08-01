@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Admin sign in · Soul Train{% endblock %}
+{% block content %}
+<section class="admin-login shell">
+  <div class="admin-login-card form-card">
+    <span class="eyebrow">Private dashboard</span>
+    <h1>Admin sign in</h1>
+    <p>Enter the password configured for this deployment.</p>
+    {% if not configured %}<div class="admin-warning">Admin access is disabled until an admin password and strong Flask secret key are configured.</div>{% endif %}
+    <form method="post" action="{{ url_for('admin_login') }}" data-loading>
+      <label>Password<input type="password" name="password" autocomplete="current-password" required {% if not configured %}disabled{% endif %}></label>
+      <button class="button button-primary button-wide" type="submit" data-loading-label="Checking…" {% if not configured %}disabled{% endif %}>Open dashboard <span>→</span></button>
+    </form>
+    <a class="admin-back" href="{{ url_for('page') }}">← Back to Soul Train</a>
+  </div>
+</section>
+{% endblock %}

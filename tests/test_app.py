@@ -4,15 +4,17 @@ import unittest
 from unittest.mock import Mock, patch
 
 from app import app
+from analytics_service import analytics_summary, identify_visitor, record_event, record_visit
 from draft_store import create_draft, get_draft
 
 
 class RouteTests(unittest.TestCase):
     def setUp(self):
-        app.config.update(TESTING=True, SECRET_KEY="test")
+        app.config.update(TESTING=True, SECRET_KEY="test", TRACK_USAGE=False)
         self.temporary_directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary_directory.cleanup)
         app.config["DRAFT_DATABASE"] = Path(self.temporary_directory.name) / "drafts.sqlite3"
+        app.config["ANALYTICS_DATABASE"] = app.config["DRAFT_DATABASE"]
         self.client = app.test_client()
 
     def draft(self):
@@ -154,6 +156,59 @@ class RouteTests(unittest.TestCase):
         response = self.client.get("/stats?range=short_term")
         self.assertEqual(response.status_code, 200)
         listening_stats.assert_called_once_with(connected.return_value, "short_term")
+
+    def test_admin_login_and_dashboard_are_private(self):
+        record_visit(app.config["ANALYTICS_DATABASE"], "browser")
+        identify_visitor(
+            app.config["ANALYTICS_DATABASE"], "browser", "spotify-user", "Sam"
+        )
+        record_event(app.config["ANALYTICS_DATABASE"], "browser", "playlist_published")
+        with patch.dict(
+            "os.environ", {"ADMIN_PASSWORD": "correct horse", "ADMIN_PASSWORD_HASH": ""}
+        ):
+            denied = self.client.post("/admin/login", data={"password": "wrong"})
+            self.assertEqual(denied.status_code, 200)
+            response = self.client.post(
+                "/admin/login", data={"password": "correct horse"}
+            )
+            self.assertEqual(response.headers["Location"], "/admin")
+            dashboard = self.client.get("/admin")
+        self.assertEqual(dashboard.status_code, 200)
+        self.assertIn(b"Usage overview", dashboard.data)
+        self.assertIn(b"Sam", dashboard.data)
+        self.assertEqual(dashboard.headers["Cache-Control"], "no-store, private")
+        self.assertEqual(dashboard.headers["X-Robots-Tag"], "noindex, nofollow")
+
+    def test_admin_dashboard_redirects_without_login(self):
+        response = self.client.get("/admin")
+        self.assertEqual(response.headers["Location"], "/admin/login")
+
+    def test_admin_login_locks_after_five_failed_attempts(self):
+        with patch.dict(
+            "os.environ", {"ADMIN_PASSWORD": "correct horse", "ADMIN_PASSWORD_HASH": ""}
+        ):
+            for _ in range(5):
+                response = self.client.post(
+                    "/admin/login", data={"password": "wrong"}
+                )
+            self.assertIn(b"locked for five minutes", response.data)
+            blocked = self.client.post(
+                "/admin/login", data={"password": "correct horse"}
+            )
+        self.assertEqual(blocked.status_code, 200)
+        self.assertNotIn("/admin", blocked.headers.get("Location", ""))
+
+    @patch("app.spotify_user", return_value=None)
+    def test_public_page_views_are_counted_without_ip_data(self, _user):
+        app.config["TRACK_USAGE"] = True
+        try:
+            self.client.get("/")
+            self.client.get("/about")
+        finally:
+            app.config["TRACK_USAGE"] = False
+        summary = analytics_summary(app.config["ANALYTICS_DATABASE"])
+        self.assertEqual(summary["totals"]["unique_browsers"], 1)
+        self.assertEqual(summary["totals"]["page_views"], 2)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,8 @@
 import os
 import secrets
+import time
+from datetime import timedelta
+from functools import wraps
 from pathlib import Path
 
 from flask import Flask, flash, redirect, render_template, request, session, url_for
@@ -7,6 +10,13 @@ from dotenv import load_dotenv
 
 load_dotenv(Path(__file__).with_name(".env"))
 
+from admin_auth import admin_password_configured, verify_admin_password
+from analytics_service import (
+    analytics_summary,
+    identify_visitor,
+    record_event,
+    record_visit,
+)
 from draft_store import create_draft, delete_draft, get_draft, save_draft
 from playlist_service import (
     prepare_library_draft,
@@ -24,13 +34,30 @@ from spotify_client import connected_spotify
 from stats_service import listening_stats
 
 
+def _secure_session_cookie():
+    configured = os.getenv("SESSION_COOKIE_SECURE")
+    if configured is not None:
+        return configured.strip().lower() in {"1", "true", "yes", "on"}
+    return (
+        os.getenv("FLASK_ENV") == "production"
+        or os.getenv("SPOTIPY_REDIRECT_URI", "").startswith("https://")
+    )
+
+
 app = Flask(__name__)
 app.config.from_mapping(
     SECRET_KEY=os.getenv("FLASK_SECRET_KEY", "dev-change-me"),
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
-    SESSION_COOKIE_SECURE=os.getenv("FLASK_ENV") == "production",
-    DRAFT_DATABASE=Path(app.instance_path) / "playlist_drafts.sqlite3",
+    SESSION_COOKIE_SECURE=_secure_session_cookie(),
+    DRAFT_DATABASE=Path(os.getenv(
+        "SOUL_TRAIN_DATABASE_PATH", Path(app.instance_path) / "playlist_drafts.sqlite3"
+    )),
+    ANALYTICS_DATABASE=Path(os.getenv(
+        "SOUL_TRAIN_DATABASE_PATH", Path(app.instance_path) / "playlist_drafts.sqlite3"
+    )),
+    TRACK_USAGE=True,
+    PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
 )
 
 PLAYLIST_FORM_FIELDS = {
@@ -45,15 +72,43 @@ def spotify_user():
     try:
         spotify = connected_spotify()
         if session.get("spotify_profile"):
-            return session["spotify_profile"]
+            profile = session["spotify_profile"]
+            _identify_current_visitor(profile)
+            return profile
         profile = spotify.current_user()
         session["spotify_profile"] = {
+            "id": profile.get("id"),
             "name": profile.get("display_name") or "Spotify listener",
             "image": _profile_image(profile),
         }
+        _identify_current_visitor(session["spotify_profile"])
         return session["spotify_profile"]
     except Exception:
         return None
+
+
+@app.before_request
+def track_public_usage():
+    if (
+        not app.config.get("TRACK_USAGE", True)
+        or request.endpoint == "static"
+        or request.path.startswith("/admin")
+    ):
+        return None
+    try:
+        record_visit(app.config["ANALYTICS_DATABASE"], _analytics_browser_id())
+    except Exception:
+        app.logger.exception("Usage analytics could not be recorded")
+    return None
+
+
+@app.after_request
+def secure_admin_responses(response):
+    if request.path.startswith("/admin"):
+        response.headers["Cache-Control"] = "no-store, private"
+        response.headers["X-Robots-Tag"] = "noindex, nofollow"
+        response.headers["Referrer-Policy"] = "no-referrer"
+    return response
 
 
 @app.context_processor
@@ -152,6 +207,7 @@ def create():
         return redirect(_builder_url(request.form.get("mode")))
 
     _store_current_draft(draft)
+    _record_usage_event("draft_created")
     return redirect(url_for("studio"))
 
 
@@ -173,6 +229,7 @@ def resume_create():
         flash("Soul Train could not prepare that playlist right now. Please try again.", "error")
         return redirect(_builder_url(form.get("mode")))
     _store_current_draft(draft)
+    _record_usage_event("draft_created")
     return redirect(url_for("studio"))
 
 
@@ -283,6 +340,7 @@ def publish_studio():
     delete_draft(
         app.config["DRAFT_DATABASE"], session.pop("playlist_draft_id"), _draft_owner_id()
     )
+    _record_usage_event("playlist_published")
     return redirect(url_for("success"))
 
 
@@ -296,6 +354,7 @@ def success():
 
 @app.get("/stats")
 def stats():
+    _record_usage_event("stats_viewed")
     if not spotify_user():
         return render_template("stats.html", stats=None)
     try:
@@ -305,6 +364,62 @@ def stats():
         flash("Your Spotify stats could not be loaded. Reconnect if you recently approved new permissions.", "error")
         data = None
     return render_template("stats.html", stats=data)
+
+
+def admin_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not session.get("admin_authenticated"):
+            return redirect(url_for("admin_login"))
+        return view(*args, **kwargs)
+    return wrapped
+
+
+@app.route("/admin/login", methods=["GET", "POST"])
+def admin_login():
+    if session.get("admin_authenticated"):
+        return redirect(url_for("admin_dashboard"))
+    configured = admin_password_configured() and app.secret_key not in {
+        "", "dev-change-me", "replace-with-a-random-value",
+    }
+    if request.method == "POST":
+        locked_until = float(session.get("admin_locked_until", 0))
+        if locked_until > time.time():
+            remaining = max(1, round((locked_until - time.time()) / 60))
+            flash(f"Too many attempts. Try again in about {remaining} minute(s).", "error")
+        elif not configured:
+            flash("Set an admin password and a strong FLASK_SECRET_KEY before using the admin page.", "error")
+        elif verify_admin_password(request.form.get("password", "")):
+            session["admin_authenticated"] = True
+            session.permanent = True
+            session.pop("admin_login_attempts", None)
+            session.pop("admin_locked_until", None)
+            return redirect(url_for("admin_dashboard"))
+        else:
+            attempts = int(session.get("admin_login_attempts", 0)) + 1
+            session["admin_login_attempts"] = attempts
+            if attempts >= 5:
+                session["admin_locked_until"] = time.time() + 5 * 60
+                session["admin_login_attempts"] = 0
+                flash("Too many attempts. Admin login is locked for five minutes.", "error")
+            else:
+                flash("That admin password is not correct.", "error")
+    return render_template("admin_login.html", configured=configured)
+
+
+@app.get("/admin")
+@admin_required
+def admin_dashboard():
+    data = analytics_summary(app.config["ANALYTICS_DATABASE"])
+    return render_template("admin.html", analytics=data)
+
+
+@app.post("/admin/logout")
+@admin_required
+def admin_logout():
+    session.pop("admin_authenticated", None)
+    session.permanent = False
+    return redirect(url_for("admin_login"))
 
 
 @app.get("/mood-gradient")
@@ -372,6 +487,37 @@ def _save_current_draft(draft):
         _draft_owner_id(),
         draft,
     )
+
+
+def _analytics_browser_id():
+    if "analytics_browser_id" not in session:
+        session["analytics_browser_id"] = secrets.token_urlsafe(18)
+    return session["analytics_browser_id"]
+
+
+def _identify_current_visitor(profile):
+    if not app.config.get("TRACK_USAGE", True):
+        return
+    try:
+        identify_visitor(
+            app.config["ANALYTICS_DATABASE"],
+            _analytics_browser_id(),
+            profile.get("id"),
+            profile.get("name"),
+        )
+    except Exception:
+        app.logger.exception("Spotify visitor identity could not be recorded")
+
+
+def _record_usage_event(event):
+    if not app.config.get("TRACK_USAGE", True):
+        return
+    try:
+        record_event(
+            app.config["ANALYTICS_DATABASE"], _analytics_browser_id(), event
+        )
+    except Exception:
+        app.logger.exception("Usage event could not be recorded")
 
 
 if __name__ == "__main__":

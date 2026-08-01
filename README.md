@@ -40,6 +40,35 @@ Spotify tokens are kept in the signed browser session. For a public deployment,
 set a strong `FLASK_SECRET_KEY`, use HTTPS, and replace the cookie session with a
 server-side session store.
 
+## Admin analytics
+
+The private `/admin` dashboard shows unique anonymous browsers, connected Spotify
+users, page views, playlist drafts, published playlists, and recent activity. It
+does not collect IP addresses, emails, Spotify tokens, or listening history.
+
+Prefer a hashed password in `ADMIN_PASSWORD_HASH`. Generate one without placing
+the password in shell history:
+
+```sh
+python3 -c "import getpass; from werkzeug.security import generate_password_hash; print(generate_password_hash(getpass.getpass('Admin password: ')))"
+```
+
+Copy the output into `.env` locally or the hosting provider's secret environment
+variables. `ADMIN_PASSWORD` is supported as a simpler local fallback. Set
+`SOUL_TRAIN_DATABASE_PATH` to a persistent disk location and
+`SESSION_COOKIE_SECURE=1` in production.
+
+## Deployment note
+
+This repository is a stateful Flask/WSGI application. A normal Netlify static
+deploy cannot run the Flask process, and local SQLite storage is not durable in a
+serverless runtime. Deploy the complete app on a Python host with a persistent
+disk, or keep a Netlify frontend and host the Flask API plus database separately.
+Converting the backend to Netlify Functions would require a separate migration
+and persistent storage such as Netlify Blobs or an external SQL database.
+The included `Procfile` starts the backend with Gunicorn on compatible Python
+hosting platforms.
+
 ## Security
 
 Credentials must never be committed. Any credentials previously stored in this

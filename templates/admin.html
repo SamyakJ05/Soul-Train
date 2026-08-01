@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Admin dashboard · Soul Train{% endblock %}
+{% block content %}
+<section class="admin-shell shell">
+  <header class="admin-heading">
+    <div><span class="eyebrow">Soul Train admin</span><h1>Usage overview</h1><p>A private view of product activity without IP addresses, emails, tokens, or listening history.</p></div>
+    <form action="{{ url_for('admin_logout') }}" method="post"><button class="button button-quiet button-small" type="submit">Sign out</button></form>
+  </header>
+
+  <div class="admin-metrics">
+    <article><small>Unique browsers</small><strong>{{ analytics.totals.unique_browsers }}</strong><span>Signed anonymous IDs</span></article>
+    <article><small>Connected users</small><strong>{{ analytics.totals.connected_users }}</strong><span>Distinct Spotify IDs</span></article>
+    <article><small>Drafts reviewed</small><strong>{{ analytics.totals.drafts_created }}</strong><span>Entered Playlist Studio</span></article>
+    <article class="admin-primary-metric"><small>Playlists published</small><strong>{{ analytics.totals.playlists_published }}</strong><span>Created in Spotify</span></article>
+  </div>
+
+  <section class="admin-panel">
+    <div class="admin-panel-heading"><div><span class="eyebrow">Last 14 days</span><h2>Daily activity</h2></div><span>{{ analytics.totals.page_views }} total page views</span></div>
+    <div class="activity-chart" aria-label="Page views across the last 14 days">
+      {% for day in analytics.daily %}
+      <div class="activity-day" title="{{ day.day }}: {{ day.page_views }} page views">
+        <span>{{ day.page_views }}</span><i style="--activity-height:{{ ((day.page_views / analytics.maximum_views) * 100)|round|int }}%"></i><small>{{ day.day[5:] }}</small>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  <section class="admin-panel">
+    <div class="admin-panel-heading"><div><span class="eyebrow">Most recent first</span><h2>Who used Soul Train</h2></div><span>Up to 50 visitors</span></div>
+    {% if analytics.visitors %}
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead><tr><th>User</th><th>Last seen</th><th>Views</th><th>Drafts</th><th>Published</th></tr></thead>
+        <tbody>
+          {% for visitor in analytics.visitors %}
+          <tr>
+            <td><strong>{{ visitor.display_name }}</strong>{% if visitor.spotify_id %}<small>Spotify ID · {{ visitor.spotify_id }}</small>{% else %}<small>Not connected to Spotify</small>{% endif %}</td>
+            <td>{{ visitor.last_seen[:10] }}</td><td>{{ visitor.page_views }}</td><td>{{ visitor.drafts_created }}</td><td>{{ visitor.playlists_published }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}<div class="admin-empty">Usage will appear here after the first public visit.</div>{% endif %}
+  </section>
+</section>
+{% endblock %}

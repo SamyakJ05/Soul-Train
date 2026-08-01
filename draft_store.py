@@ -68,8 +68,9 @@ def delete_draft(database_path, draft_id: str, owner_id: str) -> None:
 def _connect(database_path) -> sqlite3.Connection:
     path = Path(database_path)
     path.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(path)
+    connection = sqlite3.connect(path, timeout=5)
     connection.row_factory = sqlite3.Row
+    connection.execute("PRAGMA journal_mode=WAL")
     return connection
 
 
