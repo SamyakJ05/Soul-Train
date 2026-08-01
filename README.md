@@ -18,6 +18,7 @@
   <img alt="Spotify" src="https://img.shields.io/badge/Spotify-Web_API-1DB954?logo=spotify&logoColor=white">
   <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white">
   <img alt="Deployment" src="https://img.shields.io/badge/Deployed_on-Render-46E3B7?logo=render&logoColor=111111">
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/License-GPL_v3-blue.svg"></a>
 </p>
 
 Soul Train is a Spotify playlist companion built around intention instead of
@@ -27,6 +28,19 @@ playlist directly to your Spotify account.
 
 > The public deployment uses Render's free service and can take a short time to
 > wake after a period of inactivity.
+
+## Project history
+
+Soul Train began as a collaborative group project for university. That original
+work established the foundation of the application and remains an important part
+of its history.
+
+After the university project, **Samyak Jain** continued developing Soul Train as
+its current maintainer. He added and expanded its features, improved the playlist
+model and user experience, modernized and maintained the codebase, introduced the
+hosted database and admin tooling, and deployed the application for public use.
+
+Copyright in the project remains with its respective contributors.
 
 ## What you can do
 
@@ -257,6 +271,18 @@ data/                        Enriched catalog and provenance documentation
 scripts/                     Dataset preparation utilities
 tests/                       Automated test suite
 ```
+
+## License
+
+Soul Train is free software licensed under the
+[GNU General Public License v3.0 only](LICENSE) (`GPL-3.0-only`). You may use,
+study, modify, and redistribute the software under the terms of that license.
+Distributed derivative works must make their corresponding source available and
+remain under GPL v3-compatible terms.
+
+The license applies to the project code. Bundled datasets, Spotify content,
+third-party APIs, fonts, and other third-party materials remain subject to their
+own licenses and terms.
 
 ## Privacy and security
 
