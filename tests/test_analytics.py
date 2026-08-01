@@ -3,6 +3,7 @@ import tempfile
 import unittest
 
 from analytics_service import (
+    VISITOR_SUMMARY_QUERY,
     analytics_summary,
     identify_visitor,
     record_event,
@@ -39,6 +40,12 @@ class AnalyticsTests(unittest.TestCase):
     def test_rejects_unknown_event_names(self):
         with self.assertRaisesRegex(ValueError, "supported"):
             record_event(self.database, "browser", "unknown")
+
+    def test_visitor_summary_uses_postgres_compatible_grouping(self):
+        """The connected-user summary must satisfy PostgreSQL's strict GROUP BY."""
+        normalized = " ".join(VISITOR_SUMMARY_QUERY.split())
+        self.assertIn("GROUP BY spotify_id", normalized)
+        self.assertIn("'browser:' || browser_id", normalized)
 
 
 if __name__ == "__main__":

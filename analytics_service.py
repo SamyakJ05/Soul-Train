@@ -13,6 +13,25 @@ EVENT_COLUMNS = {
     "playlist_published": "playlists_published",
     "stats_viewed": "stats_views",
 }
+VISITOR_SUMMARY_QUERY = """
+    SELECT
+        spotify_id,
+        COALESCE(MAX(display_name), 'Anonymous visitor') AS display_name,
+        MIN(first_seen) AS first_seen,
+        MAX(last_seen) AS last_seen,
+        SUM(page_views) AS page_views,
+        SUM(drafts_created) AS drafts_created,
+        SUM(playlists_published) AS playlists_published
+    FROM visitors
+    GROUP BY
+        spotify_id,
+        CASE
+            WHEN spotify_id IS NULL THEN 'browser:' || browser_id
+            ELSE 'spotify:' || spotify_id
+        END
+    ORDER BY last_seen DESC
+    LIMIT 50
+"""
 _INITIALIZED_DATABASES = set()
 _INITIALIZE_LOCK = Lock()
 
@@ -107,25 +126,7 @@ def analytics_summary(database_path, days: int = 14) -> dict:
             FROM visitors
             """
         ).fetchone()
-        visitors = connection.execute(
-            """
-            SELECT
-                spotify_id,
-                COALESCE(MAX(display_name), 'Anonymous visitor') AS display_name,
-                MIN(first_seen) AS first_seen,
-                MAX(last_seen) AS last_seen,
-                SUM(page_views) AS page_views,
-                SUM(drafts_created) AS drafts_created,
-                SUM(playlists_published) AS playlists_published
-            FROM visitors
-            GROUP BY CASE
-                WHEN spotify_id IS NULL THEN 'browser:' || browser_id
-                ELSE 'spotify:' || spotify_id
-            END
-            ORDER BY last_seen DESC
-            LIMIT 50
-            """
-        ).fetchall()
+        visitors = connection.execute(VISITOR_SUMMARY_QUERY).fetchall()
         start_day = (datetime.now(timezone.utc) - timedelta(days=max(days - 1, 0))).date().isoformat()
         activity = connection.execute(
             """
