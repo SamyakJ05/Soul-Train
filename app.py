@@ -1,56 +1,72 @@
-from flask import Flask, request, render_template, redirect
-import pandas as pd
-import spotipy
-from spotipy.oauth2 import SpotifyOAuth
-from parse import make_playlist
-from unsupervised import playtwist
+import os
+
+from flask import Flask, flash, redirect, render_template, request
+
 
 app = Flask(__name__)
+app.config.from_mapping(SECRET_KEY=os.getenv("FLASK_SECRET_KEY", "dev"))
 
 
-@app.route('/')
+@app.get("/")
 def page():
-    return render_template('page.html')
+    return render_template("page.html")
 
 
-@app.route('/aboutus')
+@app.get("/aboutus")
 def aboutus():
-    return render_template('aboutus.html')
+    return render_template("aboutus.html")
 
 
-@app.route('/discover')
+@app.get("/discover")
 def discover():
-    return render_template('discover.html')
+    return render_template("discover.html")
 
-@app.route('/genre')
+
+@app.get("/genre")
 def genre():
-    return render_template('genre.html')
+    return render_template("genre.html")
 
 
-@app.route('/mood gradient')
+@app.route("/mood-gradient", methods=["GET", "POST"])
 def my_form():
-    my_form_post()
-    return render_template('mood gradient.html')
+    if request.method == "POST":
+        from parse import make_playlist
 
-@app.route('/playlistinspire')
+        try:
+            try:
+                track_count = int(request.form.get("track_count", "50"))
+            except ValueError as exc:
+                raise ValueError("Track count must be a whole number.") from exc
+            playlist_id = make_playlist(
+                request.form.get("mood1", ""),
+                request.form.get("mood2", ""),
+                track_count,
+            )
+        except (FileNotFoundError, RuntimeError, ValueError) as exc:
+            flash(str(exc), "error")
+        else:
+            return redirect(f"https://open.spotify.com/playlist/{playlist_id}")
+    return render_template("mood gradient.html")
+
+
+@app.get("/mood gradient")
+def legacy_mood_gradient():
+    return redirect("/mood-gradient", code=308)
+
+
+@app.route("/playlistinspire", methods=["GET", "POST"])
 def my_form2():
-    my_form_post2()
-    return render_template('playlistinspire.html')
+    if request.method == "POST":
+        from unsupervised import playtwist
 
+        try:
+            playlist_id = playtwist()
+        except (FileNotFoundError, RuntimeError, ValueError) as exc:
+            flash(str(exc), "error")
+        else:
+            return redirect(f"https://open.spotify.com/playlist/{playlist_id}")
+    return render_template("playlistinspire.html")
 
-@app.route('/mood gradient', methods=['POST', 'GET'])
-def my_form_post():
-    if request.method == 'POST':
-        mood1 = request.form['mood1']
-        mood2 = request.form['mood2']
-        pid = make_playlist(mood1, mood2)
-        return redirect(f'https://open.spotify.com/playlist/{pid}')
-
-@app.route('/playlistinspire', methods=['POST', 'GET'])
-def my_form_post2():
-    if request.method == 'POST':
-        pid2 = playtwist()
-        return redirect(f'https://open.spotify.com/playlist/{pid2}')
 
 if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+    app.run(port=5001)

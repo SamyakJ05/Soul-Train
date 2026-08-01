@@ -3,19 +3,18 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="weidth=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Soul Train</title>
     <link rel="stylesheet" href="/static/navbar.css">
     <link rel="stylesheet" href="/static/index.css">
     <link rel="icon" href="/static/images/LogoFinal.png">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family-Poppins:400,500,700">
-    <link rel="stylesshet" href="https://fonts.googleapis.com/css?family-Poppins:400,500,700">
 </head>
 <body>
 <div class="bg"></div>
 <div class="bg bg2"></div>
 <div class="bg bg3"></div>
-<style type="text/css">@import url("static/background.css");</style>
+<style type="text/css">@import url("/static/background.css");</style>
 <nav>
     <span id="navLogo" onclick="window.location = '#'"><img src="/static/images/FLOGO.png"></span>
     <ul class="navLinks">
@@ -30,12 +29,11 @@
         <span></span>
     </div>
 </nav>
-<body>
 <br><br><br>
 <div class="slideshow-container">
     <div class="mySlides fade">
         <div class="centered"></div>
-        <a href="discover.html"><img src="/static/images/editedphotowith button.jpg" style="width:100%"></a>
+        <a href="{{ url_for('discover') }}"><img src="/static/images/editedphotowith button.jpg" style="width:100%" alt="Discover Soul Train playlists"></a>
     </div>
 </div>
 <br>
@@ -45,8 +43,7 @@
     <span class="dot"></span>
     <span class="dot"></span>
     <span class="dot"></span>
-    <style type="text/css">   @import url("slideshow.css"); </style>
-    <script src="slideshow.js"></script>
+    <script src="{{ url_for('static', filename='slideshow.js') }}" defer></script>
 </div>
 <div class="container">
     <section class="main">
@@ -81,10 +78,6 @@
                 }
 
         </style>
-        </head>
-        <body>
-
-
         <div class="row">
             <div class="column">
                 <h2 style="font-size: 40px;">
@@ -137,4 +130,3 @@
 </body>
 </html>
 {% endblock %}
-

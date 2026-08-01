@@ -6,15 +6,15 @@
 }
 @font-face {
     font-family: joker;
-    src: url(Poppins-SemiBold-600.ttf);
+    src: url("Poppins SemiBold 600.ttf");
 }
 @font-face {
     font-family: regular;
-    src: url(Poppins-SemiBold-600.ttf);
+    src: url("Poppins SemiBold 600.ttf");
 }
 @font-face {
     font-family: semibold;
-    src: url(Poppins-SemiBold-600.ttf);
+    src: url("Poppins SemiBold 600.ttf");
 }
 ::-webkit-scrollbar{
     width:12px
@@ -52,7 +52,7 @@ a {
 .main {
     display: flex;
     align-items: center;
-    justify-contenspt: space-between;
+    justify-content: space-between;
     margin-bottom:120px;
 }
 .main img {
