@@ -2,7 +2,13 @@ from datetime import datetime, timezone
 import random
 
 from parse import JourneyOptions, generate_mood_journey
-from spotify_client import create_playlist
+from spotify_client import create_playlist, genre_track_ids
+
+
+GENRES = {
+    "any", "pop", "rock", "indie", "electronic", "hip-hop", "r-n-b",
+    "jazz", "classical", "metal", "folk", "country", "latin", "ambient",
+}
 
 
 def build_mood_playlist(spotify, form):
@@ -15,13 +21,18 @@ def build_mood_playlist(spotify, form):
         era=form.get("era", "all"),
         allow_explicit=form.get("allow_explicit") == "on",
     )
-    tracks = generate_mood_journey(options)
+    genre = form.get("genre", "any")
+    if genre not in GENRES:
+        raise ValueError("Choose a valid genre focus.")
+    candidates = None if genre == "any" else genre_track_ids(spotify, genre, options.track_count)
+    tracks = generate_mood_journey(options, candidates)
     name = form.get("playlist_name", "").strip() or (
         f"{options.start_mood.title()} → {options.end_mood.title()}"
     )
+    genre_detail = f" · {genre} focus" if genre != "any" else ""
     description = (
         f"A {options.curve} mood journey made by Soul Train. "
-        f"{options.track_count} tracks · {options.discovery}% discovery."
+        f"{options.track_count} tracks · {options.discovery}% discovery{genre_detail}."
     )
     playlist = create_playlist(
         spotify, name[:100], description[:300], form.get("private") != "on",

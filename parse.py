@@ -5,11 +5,25 @@ import numpy as np
 import pandas as pd
 
 
-MOODS = ("sad", "chill", "happy", "hype")
+SCORE_KEYS = ("sad", "chill", "happy", "hype")
+MOOD_PROFILES = {
+    "reflective": (0.90, 0.35, 0.05, 0.05),
+    "peaceful": (0.05, 0.95, 0.25, 0.02),
+    "joyful": (0.02, 0.20, 0.95, 0.35),
+    "energized": (0.02, 0.05, 0.40, 0.98),
+    "focused": (0.05, 0.72, 0.15, 0.45),
+    "romantic": (0.20, 0.52, 0.75, 0.08),
+    "dreamy": (0.25, 0.82, 0.38, 0.05),
+    "confident": (0.02, 0.18, 0.70, 0.78),
+    "cathartic": (0.72, 0.08, 0.18, 0.82),
+    "euphoric": (0.00, 0.08, 1.00, 0.88),
+    "cozy": (0.08, 0.88, 0.58, 0.02),
+    "moody": (0.78, 0.42, 0.08, 0.28),
+}
 DATA_ARCHIVE = Path(__file__).with_name("fin_nogenre.zip")
 COLUMNS = [
     "name", "explicit", "release_date", "duration_ms", "id",
-    "sad", "chill", "happy", "hype",
+    *SCORE_KEYS,
 ]
 
 
@@ -25,7 +39,7 @@ class JourneyOptions:
     seed: int | None = None
 
     def validate(self):
-        if self.start_mood not in MOODS or self.end_mood not in MOODS:
+        if self.start_mood not in MOOD_PROFILES or self.end_mood not in MOOD_PROFILES:
             raise ValueError("Choose a valid start and end mood.")
         if self.start_mood == self.end_mood:
             raise ValueError("Choose two different moods for a journey.")
@@ -60,32 +74,41 @@ def _filter_era(songs: pd.DataFrame, era: str) -> pd.DataFrame:
     return songs.loc[years.between(low, high)]
 
 
-def generate_mood_journey(options: JourneyOptions) -> list[dict]:
+def generate_mood_journey(
+    options: JourneyOptions, allowed_track_ids: set[str] | None = None
+) -> list[dict]:
     options.validate()
     if not DATA_ARCHIVE.exists():
         raise FileNotFoundError(f"Dataset archive not found: {DATA_ARCHIVE.name}")
 
     songs = pd.read_csv(DATA_ARCHIVE, header=None, names=COLUMNS)
+    songs["id"] = songs["id"].astype(str)
+    if allowed_track_ids is not None:
+        songs = songs.loc[songs["id"].isin(allowed_track_ids)]
     if not options.allow_explicit:
         songs = songs.loc[~songs["explicit"].astype(bool)]
-    songs = _filter_era(songs, options.era).dropna(subset=["id", *MOODS])
+    songs = _filter_era(songs, options.era).dropna(subset=["id", *SCORE_KEYS])
     if len(songs) < options.track_count:
-        raise ValueError("Not enough tracks match those filters. Try another era or allow explicit tracks.")
+        raise ValueError(
+            "Not enough tracks match that combination. Try Any genre, another era, "
+            "a shorter playlist, or allow explicit tracks."
+        )
 
     # Keep strong mood candidates, but widen the pool as discovery increases.
-    relevance_floor = 0.62 - (options.discovery / 100) * 0.27
-    songs = songs.loc[songs[[options.start_mood, options.end_mood]].max(axis=1) >= relevance_floor]
     rng = np.random.default_rng(options.seed)
     songs = songs.assign(_jitter=rng.random(len(songs)) * (options.discovery / 100) * 0.18)
+
+    start_profile = np.array(MOOD_PROFILES[options.start_mood])
+    end_profile = np.array(MOOD_PROFILES[options.end_mood])
+    score_matrix = songs[list(SCORE_KEYS)].to_numpy(dtype=float)
 
     selected = []
     used = set()
     for progress in _journey_progress(options.track_count, options.curve):
-        target_start, target_end = 1 - progress, progress
-        distance = (
-            (songs[options.start_mood] - target_start).abs()
-            + (songs[options.end_mood] - target_end).abs()
-            - songs["_jitter"]
+        target = start_profile * (1 - progress) + end_profile * progress
+        distance = pd.Series(
+            np.linalg.norm(score_matrix - target, axis=1) - songs["_jitter"].to_numpy(),
+            index=songs.index,
         )
         available = distance.loc[~songs.index.isin(used)]
         if available.empty:

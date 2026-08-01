@@ -18,9 +18,13 @@ is read directly by pandas.
 
 - **Mood journey:** track-by-track scoring between two mood targets, with smooth,
   cinematic, or surprise transitions and controls for discovery, era, explicit
-  content, length, visibility, and name.
+  content, genre, length, visibility, and name. Twelve mood profiles are derived
+  from the dataset's reflective, calm, joyful, and energetic scores.
 - **Library rediscovery:** reads up to 500 saved Spotify tracks and gives older
   saves a better chance to return to the rotation.
+- **Your Stats:** displays top tracks, artists, and genres over four weeks, six
+  months, or long-term listening history. Existing users must reconnect once to
+  approve the added `user-top-read` permission.
 
 Spotify tokens are kept in the signed browser session. For a public deployment,
 set a strong `FLASK_SECRET_KEY`, use HTTPS, and replace the cookie session with a

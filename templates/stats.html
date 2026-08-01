@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Your Spotify Stats · Soul Train{% endblock %}
+{% block content %}
+<section class="stats-page shell">
+  <div class="product-tabs" aria-label="Soul Train features">
+    <a href="{{ url_for('mood_builder') }}"><span>↗</span>Mood Journey</a>
+    <a href="{{ url_for('library_builder') }}"><span>↺</span>Library Mix</a>
+    <a class="active" href="{{ url_for('stats') }}"><span>◫</span>Your Stats</a>
+  </div>
+  {% if not spotify_user %}
+    <div class="empty-stats"><span class="stats-orb">◫</span><h1>Your listening story lives here.</h1><p>Connect Spotify to see the artists, tracks, and genres defining your taste.</p><a class="button button-spotify" href="{{ url_for('connect', next='/stats') }}">Connect Spotify →</a></div>
+  {% elif not stats %}
+    <div class="empty-stats"><h1>We couldn’t load your stats yet.</h1><p>If you connected before this feature was added, reconnect once to approve stats access.</p><a class="button button-spotify" href="{{ url_for('reconnect', next='/stats') }}">Reconnect Spotify →</a></div>
+  {% else %}
+    <div class="stats-heading"><div><span class="eyebrow">Your listening snapshot</span><h1>What’s been in your orbit?</h1></div><div class="range-tabs"><a class="{{ 'active' if stats.time_range == 'short_term' }}" href="?range=short_term">4 weeks</a><a class="{{ 'active' if stats.time_range == 'medium_term' }}" href="?range=medium_term">6 months</a><a class="{{ 'active' if stats.time_range == 'long_term' }}" href="?range=long_term">All time</a></div></div>
+    <div class="stat-cards"><article><small>Top artist</small><b>{{ stats.artists[0].name if stats.artists else 'Not enough data' }}</b></article><article><small>Top track</small><b>{{ stats.tracks[0].name if stats.tracks else 'Not enough data' }}</b></article><article><small>Artists in top tracks</small><b>{{ stats.unique_artists }}</b></article></div>
+    {% if stats.top_genres %}<section class="genre-cloud"><span class="eyebrow">Your genre constellation</span><div>{% for genre, count in stats.top_genres %}<span style="--weight:{{ count }}">{{ genre }}</span>{% endfor %}</div></section>{% endif %}
+    <div class="ranking-grid">
+      <section><div class="ranking-title"><h2>Top tracks</h2><span>01—10</span></div><ol class="ranking-list">{% for track in stats.tracks %}<li><b>{{ "%02d"|format(track.rank) }}</b>{% if track.image %}<img src="{{ track.image }}" alt="">{% endif %}<a href="{{ track.url }}" target="_blank" rel="noopener"><strong>{{ track.name }}</strong><small>{{ track.artist }}</small></a></li>{% endfor %}</ol></section>
+      <section><div class="ranking-title"><h2>Top artists</h2><span>01—10</span></div><ol class="ranking-list artist-list">{% for artist in stats.artists %}<li><b>{{ "%02d"|format(artist.rank) }}</b>{% if artist.image %}<img src="{{ artist.image }}" alt="">{% endif %}<a href="{{ artist.url }}" target="_blank" rel="noopener"><strong>{{ artist.name }}</strong><small>Open in Spotify ↗</small></a></li>{% endfor %}</ol></section>
+    </div>
+    <p class="spotify-attribution">Listening affinity data provided by Spotify.</p>
+  {% endif %}
+</section>
+{% endblock %}

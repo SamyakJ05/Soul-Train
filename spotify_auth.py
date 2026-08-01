@@ -12,6 +12,7 @@ SCOPES = " ".join(
         "playlist-modify-private",
         "user-library-read",
         "user-read-private",
+        "user-top-read",
     ]
 )
 SPOTIFY_ENV_KEYS = (

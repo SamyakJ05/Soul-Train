@@ -1,43 +1,60 @@
 {% extends "base.html" %}
-{% block title %}Create a playlist · Soul Train{% endblock %}
+{% block title %}{{ 'Mood Journey' if active_mode == 'mood' else 'Library Mix' }} · Soul Train{% endblock %}
 {% block content %}
-<section class="builder-shell shell" data-builder data-active-mode="{{ active_mode }}">
-  <div class="builder-intro"><span class="eyebrow">Playlist studio</span><h1>What do you want to hear?</h1><p>Pick a recipe, shape it to your day, then send it to Spotify.</p></div>
-
-  <div class="mode-switch" role="tablist" aria-label="Playlist recipe">
-    <button type="button" role="tab" data-mode-button="mood"><span>↗</span><b>Mood journey</b><small>Transition between two feelings</small></button>
-    <button type="button" role="tab" data-mode-button="library"><span>↺</span><b>Library rediscovery</b><small>Bring forgotten saves back</small></button>
+<section class="builder-shell shell" data-builder>
+  <div class="product-tabs" aria-label="Soul Train features">
+    <a class="{{ 'active' if active_mode == 'mood' }}" href="{{ url_for('mood_builder') }}"><span>↗</span>Mood Journey</a>
+    <a class="{{ 'active' if active_mode == 'library' }}" href="{{ url_for('library_builder') }}"><span>↺</span>Library Mix</a>
+    <a href="{{ url_for('stats') }}"><span>◫</span>Your Stats</a>
   </div>
 
-  <form class="builder-form" action="{{ url_for('create') }}" method="post" data-mode-panel="mood">
+  {% if active_mode == 'mood' %}
+  <div class="builder-intro"><span class="eyebrow">Mood Journey</span><h1>Tell us where you are—and where you’re going.</h1><p>The model draws a track-by-track path between two emotional profiles.</p></div>
+  <form class="builder-form" action="{{ url_for('create') }}" method="post">
     <input type="hidden" name="mode" value="mood">
     <div class="form-card">
-      <div class="form-step"><span>1</span><div><h2>Set your mood arc</h2><p>Choose two different moods.</p></div></div>
+      <div class="form-step"><span>1</span><div><h2>Choose the emotional arc</h2><p>Each mood blends four musical signals: reflective, calm, joyful and energetic.</p></div></div>
       <div class="mood-pair">
-        <label>Start feeling<select name="start_mood" required><option value="chill">Chill</option><option value="happy">Happy</option><option value="sad">Reflective</option><option value="hype">Hype</option></select></label>
+        <label>Start here
+          <select name="start_mood" id="start-mood" required>
+            <optgroup label="Slow down"><option value="peaceful">Peaceful</option><option value="cozy">Cozy</option><option value="dreamy">Dreamy</option><option value="reflective">Reflective</option><option value="moody">Moody</option></optgroup>
+            <optgroup label="Open up"><option value="focused">Focused</option><option value="romantic">Romantic</option><option value="joyful">Joyful</option></optgroup>
+            <optgroup label="Turn it up"><option value="confident">Confident</option><option value="energized">Energized</option><option value="cathartic">Cathartic</option><option value="euphoric">Euphoric</option></optgroup>
+          </select>
+        </label>
         <span class="arrow">→</span>
-        <label>End feeling<select name="end_mood" required><option value="hype">Hype</option><option value="happy">Happy</option><option value="chill">Chill</option><option value="sad">Reflective</option></select></label>
+        <label>Land here
+          <select name="end_mood" id="end-mood" required>
+            <optgroup label="Slow down"><option value="peaceful">Peaceful</option><option value="cozy">Cozy</option><option value="dreamy">Dreamy</option><option value="reflective">Reflective</option><option value="moody">Moody</option></optgroup>
+            <optgroup label="Open up"><option value="focused">Focused</option><option value="romantic">Romantic</option><option value="joyful">Joyful</option></optgroup>
+            <optgroup label="Turn it up"><option value="confident">Confident</option><option value="energized" selected>Energized</option><option value="cathartic">Cathartic</option><option value="euphoric">Euphoric</option></optgroup>
+          </select>
+        </label>
       </div>
+      <div class="journey-preview" aria-live="polite"><div><span data-start-label>Peaceful</span><i></i><span data-end-label>Energized</span></div><p data-journey-copy>A gradual lift from still and spacious to bright and high-energy.</p></div>
     </div>
     <div class="form-card">
-      <div class="form-step"><span>2</span><div><h2>Shape the journey</h2><p>Defaults are balanced for a first listen.</p></div></div>
+      <div class="form-step"><span>2</span><div><h2>Guide the sound</h2><p>Keep “Any genre” for the widest, smoothest transition.</p></div></div>
       <div class="control-grid">
-        <label>Journey shape<select name="curve"><option value="smooth">Smooth & steady</option><option value="cinematic">Cinematic build</option><option value="surprise">A few surprises</option></select></label>
+        <label>Journey shape<select name="curve"><option value="smooth">Smooth — even changes</option><option value="cinematic">Cinematic — slow build, big finish</option><option value="surprise">Playful — a few detours</option></select></label>
+        <label>Genre focus<select name="genre"><option value="any">Any genre</option><option value="pop">Pop</option><option value="rock">Rock</option><option value="indie">Indie</option><option value="electronic">Electronic</option><option value="hip-hop">Hip-hop</option><option value="r-n-b">R&B</option><option value="jazz">Jazz</option><option value="classical">Classical</option><option value="metal">Metal</option><option value="folk">Folk</option><option value="country">Country</option><option value="latin">Latin</option><option value="ambient">Ambient</option></select></label>
         <label>Era<select name="era"><option value="all">All eras</option><option value="pre-2000">Before 2000</option><option value="2000s">2000s</option><option value="2010s">2010s</option><option value="2020s">2020s</option></select></label>
-        <label class="range-label">Tracks <output data-output-for="track-count">30</output><input id="track-count" type="range" name="track_count" min="10" max="100" value="30" step="5"></label>
-        <label class="range-label">Discovery <output data-output-for="discovery">35%</output><input id="discovery" type="range" name="discovery" min="0" max="100" value="35"></label>
+        <label class="range-label">Playlist length <output data-output-for="track-count">30</output><input id="track-count" type="range" name="track_count" min="10" max="100" value="30" step="5"><small>About <b data-duration>1 hr 45 min</b></small></label>
+        <label class="range-label control-wide">Familiarity <output data-output-for="discovery">Balanced</output><input id="discovery" type="range" name="discovery" min="0" max="100" value="35"><small><span>Closest match</span><span>More unexpected</span></small></label>
       </div>
     </div>
     {% set show_explicit = true %}{% include "builder_finish.html" %}
   </form>
-
-  <form class="builder-form" action="{{ url_for('create') }}" method="post" data-mode-panel="library" hidden>
+  {% else %}
+  <div class="builder-intro"><span class="eyebrow">Library Mix</span><h1>Bring forgotten favorites back into rotation.</h1><p>We look through your saved songs and favor great tracks you added longest ago.</p></div>
+  <form class="builder-form" action="{{ url_for('create') }}" method="post">
     <input type="hidden" name="mode" value="library">
     <div class="form-card library-explainer">
-      <div class="form-step"><span>1</span><div><h2>Revisit your saved songs</h2><p>We favor songs that have been sitting in your library the longest, with enough variation to keep every mix fresh.</p></div></div>
-      <label class="range-label">Tracks <output data-output-for="library-count">30</output><input id="library-count" type="range" name="track_count" min="10" max="100" value="30" step="5"></label>
+      <div class="form-step"><span>1</span><div><h2>Choose your listening window</h2><p>Every mix varies slightly, so you can return whenever your rotation feels stale.</p></div></div>
+      <label class="range-label">Playlist length <output data-output-for="library-count">30</output><input id="library-count" type="range" name="track_count" min="10" max="100" value="30" step="5"><small>Drawn from up to 500 saved songs</small></label>
     </div>
     {% set show_explicit = false %}{% include "builder_finish.html" %}
   </form>
+  {% endif %}
 </section>
 {% endblock %}

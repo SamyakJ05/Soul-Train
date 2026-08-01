@@ -6,7 +6,7 @@
     <h1>Turn how you feel into what you hear next.</h1>
     <p>Soul Train creates a deliberate musical arc—from one mood to another—and places it directly in your Spotify account.</p>
     <div class="hero-actions">
-      <a class="button button-primary" href="{{ url_for('discover') }}">Build my playlist <span>→</span></a>
+      <a class="button button-primary" href="{{ url_for('mood_builder') }}">Build my playlist <span>→</span></a>
       <a class="button button-quiet" href="#how">See how it works</a>
     </div>
     <div class="trust-row"><span>✓ No password shared</span><span>✓ You choose public or private</span><span>✓ Disconnect anytime</span></div>
@@ -35,7 +35,7 @@
 </section>
 
 <section class="feature-pair shell">
-  <a class="feature-card mood-card" href="{{ url_for('discover', mode='mood') }}"><span class="eyebrow">Mood journey</span><h2>Move from one feeling to another.</h2><p>A scored, track-by-track transition using Soul Train's local mood model.</p><b>Create a journey →</b></a>
-  <a class="feature-card library-card" href="{{ url_for('discover', mode='library') }}"><span class="eyebrow">Library rediscovery</span><h2>Find the songs you forgot you loved.</h2><p>Turn overlooked saves from your Spotify library into a fresh rotation.</p><b>Rediscover favorites →</b></a>
+  <a class="feature-card mood-card" href="{{ url_for('mood_builder') }}"><span class="eyebrow">Mood journey</span><h2>Move from one feeling to another.</h2><p>A scored, track-by-track transition using Soul Train's local mood model.</p><b>Create a journey →</b></a>
+  <a class="feature-card library-card" href="{{ url_for('library_builder') }}"><span class="eyebrow">Library rediscovery</span><h2>Find the songs you forgot you loved.</h2><p>Turn overlooked saves from your Spotify library into a fresh rotation.</p><b>Rediscover favorites →</b></a>
 </section>
 {% endblock %}
