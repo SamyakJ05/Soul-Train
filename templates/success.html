@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}Your playlist is ready · Soul Train{% endblock %}
+{% block content %}
+<section class="success-page shell">
+  <div class="success-mark">✓</div><span class="eyebrow">Created in your Spotify account</span>
+  <h1>{{ playlist.name }}</h1><p>{{ playlist.track_count }} tracks are ready for you.</p>
+  <div class="success-actions"><a class="button button-spotify" href="{{ playlist.url }}" target="_blank" rel="noopener">Open in Spotify ↗</a><a class="button button-quiet" href="{{ url_for('discover') }}">Make another</a></div>
+  <div class="success-tip"><b>Make it yours</b><p>Reorder a favorite, add a cover, or share it with someone directly from Spotify.</p></div>
+</section>
+{% endblock %}

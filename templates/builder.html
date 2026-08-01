@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Create a playlist · Soul Train{% endblock %}
+{% block content %}
+<section class="builder-shell shell" data-builder data-active-mode="{{ active_mode }}">
+  <div class="builder-intro"><span class="eyebrow">Playlist studio</span><h1>What do you want to hear?</h1><p>Pick a recipe, shape it to your day, then send it to Spotify.</p></div>
+
+  <div class="mode-switch" role="tablist" aria-label="Playlist recipe">
+    <button type="button" role="tab" data-mode-button="mood"><span>↗</span><b>Mood journey</b><small>Transition between two feelings</small></button>
+    <button type="button" role="tab" data-mode-button="library"><span>↺</span><b>Library rediscovery</b><small>Bring forgotten saves back</small></button>
+  </div>
+
+  <form class="builder-form" action="{{ url_for('create') }}" method="post" data-mode-panel="mood">
+    <input type="hidden" name="mode" value="mood">
+    <div class="form-card">
+      <div class="form-step"><span>1</span><div><h2>Set your mood arc</h2><p>Choose two different moods.</p></div></div>
+      <div class="mood-pair">
+        <label>Start feeling<select name="start_mood" required><option value="chill">Chill</option><option value="happy">Happy</option><option value="sad">Reflective</option><option value="hype">Hype</option></select></label>
+        <span class="arrow">→</span>
+        <label>End feeling<select name="end_mood" required><option value="hype">Hype</option><option value="happy">Happy</option><option value="chill">Chill</option><option value="sad">Reflective</option></select></label>
+      </div>
+    </div>
+    <div class="form-card">
+      <div class="form-step"><span>2</span><div><h2>Shape the journey</h2><p>Defaults are balanced for a first listen.</p></div></div>
+      <div class="control-grid">
+        <label>Journey shape<select name="curve"><option value="smooth">Smooth & steady</option><option value="cinematic">Cinematic build</option><option value="surprise">A few surprises</option></select></label>
+        <label>Era<select name="era"><option value="all">All eras</option><option value="pre-2000">Before 2000</option><option value="2000s">2000s</option><option value="2010s">2010s</option><option value="2020s">2020s</option></select></label>
+        <label class="range-label">Tracks <output data-output-for="track-count">30</output><input id="track-count" type="range" name="track_count" min="10" max="100" value="30" step="5"></label>
+        <label class="range-label">Discovery <output data-output-for="discovery">35%</output><input id="discovery" type="range" name="discovery" min="0" max="100" value="35"></label>
+      </div>
+    </div>
+    {% set show_explicit = true %}{% include "builder_finish.html" %}
+  </form>
+
+  <form class="builder-form" action="{{ url_for('create') }}" method="post" data-mode-panel="library" hidden>
+    <input type="hidden" name="mode" value="library">
+    <div class="form-card library-explainer">
+      <div class="form-step"><span>1</span><div><h2>Revisit your saved songs</h2><p>We favor songs that have been sitting in your library the longest, with enough variation to keep every mix fresh.</p></div></div>
+      <label class="range-label">Tracks <output data-output-for="library-count">30</output><input id="library-count" type="range" name="track_count" min="10" max="100" value="30" step="5"></label>
+    </div>
+    {% set show_explicit = false %}{% include "builder_finish.html" %}
+  </form>
+</section>
+{% endblock %}

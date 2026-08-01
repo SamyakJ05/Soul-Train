@@ -1,132 +1,41 @@
+{% extends "base.html" %}
 {% block content %}
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Soul Train</title>
-    <link rel="stylesheet" href="/static/navbar.css">
-    <link rel="stylesheet" href="/static/index.css">
-    <link rel="icon" href="/static/images/LogoFinal.png">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family-Poppins:400,500,700">
-</head>
-<body>
-<div class="bg"></div>
-<div class="bg bg2"></div>
-<div class="bg bg3"></div>
-<style type="text/css">@import url("/static/background.css");</style>
-<nav>
-    <span id="navLogo" onclick="window.location = '#'"><img src="/static/images/FLOGO.png"></span>
-    <ul class="navLinks">
-        <li id="cross"></li>
-        <li><a href="{{url_for('page')}}">Home</a></li>
-        <li><a href="{{url_for('aboutus')}}">About Us</a></li>
-        <li><a href="{{url_for('discover')}}">Discover</a></li>
-    </ul>
-    <div id="hamburger">
-        <span></span>
-        <span></span>
-        <span></span>
+<section class="hero shell">
+  <div class="hero-copy">
+    <span class="eyebrow">A playlist with somewhere to go</span>
+    <h1>Turn how you feel into what you hear next.</h1>
+    <p>Soul Train creates a deliberate musical arc—from one mood to another—and places it directly in your Spotify account.</p>
+    <div class="hero-actions">
+      <a class="button button-primary" href="{{ url_for('discover') }}">Build my playlist <span>→</span></a>
+      <a class="button button-quiet" href="#how">See how it works</a>
     </div>
-</nav>
-<br><br><br>
-<div class="slideshow-container">
-    <div class="mySlides fade">
-        <div class="centered"></div>
-        <a href="{{ url_for('discover') }}"><img src="/static/images/editedphotowith button.jpg" style="width:100%" alt="Discover Soul Train playlists"></a>
+    <div class="trust-row"><span>✓ No password shared</span><span>✓ You choose public or private</span><span>✓ Disconnect anytime</span></div>
+  </div>
+  <div class="hero-visual" aria-label="A playlist moving from calm to energetic">
+    <div class="orb orb-one"></div><div class="orb orb-two"></div>
+    <div class="now-playing">
+      <span class="mini-label">YOUR NEXT JOURNEY</span>
+      <div class="cover-art"><span>ST</span></div>
+      <h2>Quiet confidence</h2><p>Chill → Hype · 32 tracks</p>
+      <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div class="journey-line"><b>Chill</b><span><i></i></span><b>Hype</b></div>
     </div>
-</div>
-<br>
-<div style="text-align:center">
+  </div>
+</section>
 
-    <span class="dot"></span>
-    <span class="dot"></span>
-    <span class="dot"></span>
-    <span class="dot"></span>
-    <script src="{{ url_for('static', filename='slideshow.js') }}" defer></script>
-</div>
-<div class="container">
-    <section class="main">
-        <div class="info">
-            <h1>FEEL THE MUSIC.</h1>
-            <p style="font: size 20px;">We have the right match for you. Your music, handpicked by us.
-                We came up with this idea while looking through music streaming apps and how there is a lack of
-                customizable and personalized song playlists. Most of the playlists they offer are pre-made and lack
-                character. Therefore, our objective is to make you worry less about the same.</p>
-        </div>
-        <img src="/static/images/biglogo.png" alt="">
-    </section>
-    <section class="events1" id="events1">
-        <style>
-                * {
-                  box-sizing: border-box;
-                }
-                
-                /* Create two equal columns that floats next to each other */
-                .column {
-                  float: left;
-                  width: 50%;
-                  padding: 10px;
-                  height: 300px; /* Should be removed. Only for demonstration */
-                }
-                
-                /* Clear floats after the columns */
-                .row:after {
-                  content: "";
-                  display: table;
-                  clear: both;
-                }
+<section class="proof-strip"><p>One connection. A few choices. A playlist waiting in Spotify.</p></section>
 
-        </style>
-        <div class="row">
-            <div class="column">
-                <h2 style="font-size: 40px;">
-                    <center>ABOUT US</center>
-                </h2>
-                <p>
-                <center>In today's world of endless number of songs being available to you just a click away, it might
-                    be a hassle for us listeners to decide what's the type of playlist we need, we are just the thing
-                    for it.
-                </center>
-                </p>
-            </div>
-            <div class="column">
-                <h2 style="font-size: 40px;">
-                    <center>WHAT WE PROVIDE</center>
-                </h2>
-                <p>
-                <center> Curating a playlist for you as per the genre you wish to indulge in. Song recommendations are
-                    given to you based on factors such as mood of song, the specific era of the music industry or just
-                    from a particular time frame to suit your needs in the best way possible.
-                </center>
-                </p>
-            </div>
-        </div>
-    </section>
-    <footer>
-        <p>shashuke.</p>
-    </footer>
-    <script>
-        const burger = document.getElementById("hamburger");
-        const cross = document.getElementById("cross");
-        const nav = document.querySelector(".navLinks");
-        const navLinks = document.querySelectorAll(".navLinks li a");
-        burger.addEventListener("click",() => {
-            nav.classList.add("nav-active");
-            navLinks.forEach(function(link,index){
-                link.style.opacity = 0;
-                link.style.animation = `navLinkFade 0.5s ease forwards ${index/12+0.1}s`;
-            });
-        });
-        cross.addEventListener("click",() => {
-            nav.classList.remove("nav-active");
-            navLinks.forEach(function(link,index){
-                link.style.animation = "";
-                link.style.opacity = 1;
-            });
-        });
+<section class="how shell" id="how">
+  <div class="section-heading"><span class="eyebrow">Built around your intent</span><h2>Less scrolling. More listening.</h2></div>
+  <div class="step-grid">
+    <article><span>01</span><h3>Choose the arc</h3><p>Pick where the playlist begins, where it lands, and how dramatically it gets there.</p></article>
+    <article><span>02</span><h3>Tune the mix</h3><p>Set length, era, discovery, explicit content and whether it stays private.</p></article>
+    <article><span>03</span><h3>Press play in Spotify</h3><p>Connect once. Soul Train creates the playlist in your account and takes you straight to it.</p></article>
+  </div>
+</section>
 
-    </script>
-</body>
-</html>
+<section class="feature-pair shell">
+  <a class="feature-card mood-card" href="{{ url_for('discover', mode='mood') }}"><span class="eyebrow">Mood journey</span><h2>Move from one feeling to another.</h2><p>A scored, track-by-track transition using Soul Train's local mood model.</p><b>Create a journey →</b></a>
+  <a class="feature-card library-card" href="{{ url_for('discover', mode='library') }}"><span class="eyebrow">Library rediscovery</span><h2>Find the songs you forgot you loved.</h2><p>Turn overlooked saves from your Spotify library into a fresh rotation.</p><b>Rediscover favorites →</b></a>
+</section>
 {% endblock %}

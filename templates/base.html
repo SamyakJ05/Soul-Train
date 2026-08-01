@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0a0a0b">
+  <meta name="description" content="Shape a mood journey and save it directly to Spotify with Soul Train.">
+  <title>{% block title %}Soul Train{% endblock %}</title>
+  <link rel="icon" href="{{ url_for('static', filename='images/FLOGO.png') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='index.css') }}">
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <header class="site-header">
+    <a class="brand" href="{{ url_for('page') }}" aria-label="Soul Train home">
+      <img src="{{ url_for('static', filename='images/FLOGO.png') }}" alt="">
+      <span>Soul Train</span>
+    </a>
+    <nav aria-label="Main navigation">
+      <a href="{{ url_for('discover') }}">Create</a>
+      <a href="{{ url_for('aboutus') }}">How it works</a>
+    </nav>
+    <div class="account-slot">
+      {% if spotify_user %}
+        <span class="connected-pill"><i></i>{{ spotify_user.name }}</span>
+        <form action="{{ url_for('disconnect') }}" method="post"><button class="text-button" type="submit">Disconnect</button></form>
+      {% else %}
+        <a class="button button-small button-spotify" href="{{ url_for('connect') }}">Connect Spotify</a>
+      {% endif %}
+    </div>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="toast-stack" aria-live="polite">
+        {% for category, message in messages %}<div class="toast toast-{{ category }}">{{ message }}</div>{% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main id="main">{% block content %}{% endblock %}</main>
+  <footer><span>Soul Train</span><p>Your taste, shaped into a journey. Not affiliated with Spotify.</p></footer>
+</body>
+</html>

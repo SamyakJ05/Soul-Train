@@ -1,17 +1,30 @@
 # Soul Train
 
-Soul Train is a Flask app that creates Spotify playlists from mood scores or clusters from a user's liked tracks.
+Soul Train is a Flask app that creates Spotify playlists from a guided mood journey or rediscovery of a user's saved tracks.
 
 ## Setup
 
 1. Create a virtual environment and install `requirements.txt`.
 2. Copy `.env.example` to `.env` and provide credentials from a Spotify developer app.
-3. Export the `.env` values in your shell, then run `python app.py`.
-4. Open <http://127.0.0.1:5001>.
+3. In the Spotify developer dashboard, register the exact redirect URI from `.env`.
+4. Run `python app.py`; the app loads the `.env` file automatically.
+5. Open <http://127.0.0.1:5001>.
 
 The Spotify redirect URI configured in the developer dashboard must match
 `SPOTIPY_REDIRECT_URI`. The mood dataset stays compressed as `fin_nogenre.zip` and
 is read directly by pandas.
+
+## Playlist modes
+
+- **Mood journey:** track-by-track scoring between two mood targets, with smooth,
+  cinematic, or surprise transitions and controls for discovery, era, explicit
+  content, length, visibility, and name.
+- **Library rediscovery:** reads up to 500 saved Spotify tracks and gives older
+  saves a better chance to return to the rotation.
+
+Spotify tokens are kept in the signed browser session. For a public deployment,
+set a strong `FLASK_SECRET_KEY`, use HTTPS, and replace the cookie session with a
+server-side session store.
 
 ## Security
 

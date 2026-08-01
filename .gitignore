@@ -7,5 +7,3 @@ __pycache__/
 .pytest_cache/
 .venv/
 songs2.csv
-liked_tracks_*.csv
-!liked_tracks_1669386403.csv

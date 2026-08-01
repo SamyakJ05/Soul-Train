@@ -1,0 +1,15 @@
+<div class="form-card finish-card">
+  <div class="form-step"><span>3</span><div><h2>Name it and send it</h2><p>It will appear directly in your Spotify library.</p></div></div>
+  <label>Playlist name <span class="optional">optional</span><input type="text" name="playlist_name" maxlength="100" placeholder="Soul Train will suggest one"></label>
+  <div class="toggle-row">
+    <label class="toggle"><input type="checkbox" name="private"><span></span><b>Keep playlist private</b></label>
+    {% if show_explicit %}<label class="toggle mood-only"><input type="checkbox" name="allow_explicit"><span></span><b>Allow explicit tracks</b></label>{% endif %}
+  </div>
+  {% if spotify_user %}
+    <button class="button button-primary button-wide" type="submit">Create in Spotify <span>→</span></button>
+    <p class="connected-note"><i></i>Connected as {{ spotify_user.name }}</p>
+  {% else %}
+    <button class="button button-spotify button-wide" type="submit">Connect Spotify & create <span>→</span></button>
+    <p class="connected-note">You’ll approve access on Spotify, then return here.</p>
+  {% endif %}
+</div>

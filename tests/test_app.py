@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from app import app
 
@@ -9,36 +9,46 @@ class RouteTests(unittest.TestCase):
         app.config.update(TESTING=True, SECRET_KEY="test")
         self.client = app.test_client()
 
-    def test_pages_render(self):
-        for path in ("/", "/aboutus", "/discover", "/genre", "/mood-gradient", "/playlistinspire"):
+    @patch("app.spotify_user", return_value=None)
+    def test_pages_render(self, _spotify_user):
+        for path in ("/", "/about", "/aboutus", "/discover", "/builder"):
             with self.subTest(path=path):
                 self.assertEqual(self.client.get(path).status_code, 200)
 
-    def test_legacy_mood_url_redirects(self):
+    @patch("app.spotify_user", return_value=None)
+    def test_legacy_routes_point_to_builder(self, _spotify_user):
         response = self.client.get("/mood%20gradient")
         self.assertEqual(response.status_code, 308)
-        self.assertEqual(response.headers["Location"], "/mood-gradient")
+        self.assertEqual(response.headers["Location"], "/builder?mode=mood")
+        response = self.client.get("/playlistinspire")
+        self.assertEqual(response.headers["Location"], "/builder?mode=library")
 
-    @patch("parse.make_playlist", return_value="playlist-id")
-    def test_mood_form_redirects_to_created_playlist(self, make_playlist):
-        response = self.client.post(
-            "/mood-gradient",
-            data={"mood1": "sad", "mood2": "happy", "track_count": "25"},
-        )
-        make_playlist.assert_called_once_with("sad", "happy", 25)
+    @patch("app.spotify_is_configured", return_value=False)
+    @patch("app.spotify_user", return_value=None)
+    def test_unconfigured_connect_returns_to_builder(self, _user, _configured):
+        response = self.client.get("/connect")
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(
-            response.headers["Location"],
-            "https://open.spotify.com/playlist/playlist-id",
-        )
+        self.assertEqual(response.headers["Location"], "/builder")
 
-    def test_invalid_track_count_is_reported(self):
-        response = self.client.post(
-            "/mood-gradient",
-            data={"mood1": "sad", "mood2": "happy", "track_count": "many"},
+    @patch("app.build_mood_playlist")
+    @patch("app.connected_spotify")
+    @patch("app.spotify_user", return_value={"name": "Sam", "image": None})
+    def test_create_saves_result_and_redirects(self, _user, connected, build):
+        connected.return_value = Mock()
+        build.return_value = (
+            {"id": "abc", "name": "Focus lift", "external_urls": {"spotify": "https://open.spotify.com/playlist/abc"}},
+            [{"id": "one"}, {"id": "two"}],
         )
-        self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Track count must be a whole number", response.data)
+        response = self.client.post("/create", data={"mode": "mood"})
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/success")
+        with self.client.session_transaction() as saved:
+            self.assertEqual(saved["last_playlist"]["track_count"], 2)
+
+    @patch("app.spotify_user", return_value=None)
+    def test_create_prompts_disconnected_user_to_connect(self, _user):
+        response = self.client.post("/create", data={"mode": "library"})
+        self.assertEqual(response.headers["Location"], "/connect")
 
 
 if __name__ == "__main__":
