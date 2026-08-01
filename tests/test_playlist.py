@@ -83,6 +83,27 @@ class JourneyTests(unittest.TestCase):
         self.assertLess(_hellinger_distance(first, start), _hellinger_distance(first, end))
         self.assertLess(_hellinger_distance(last, end), _hellinger_distance(last, start))
 
+    def test_journey_can_exclude_tracks_already_in_a_draft(self):
+        rows = []
+        for index, progress in enumerate(np.linspace(0, 1, 15)):
+            scores = np.array(MOOD_PROFILES["peaceful"]) * (1 - progress) + np.array(MOOD_PROFILES["energized"]) * progress
+            rows.append([f"Track {index}", False, "2020-01-01", 180000, f"id-{index}", *scores])
+        frame = pd.DataFrame(rows, columns=COLUMNS)
+        archive = Mock()
+        archive.exists.return_value = True
+        enrichment = Mock()
+        enrichment.exists.return_value = False
+        with (
+            patch("parse.DATA_ARCHIVE", archive),
+            patch("parse.ENRICHMENT_FILE", enrichment),
+            patch("parse.pd.read_csv", return_value=frame),
+        ):
+            tracks = generate_mood_journey(
+                JourneyOptions("peaceful", "energized", 10, discovery=0),
+                excluded_track_ids={"id-0", "id-1"},
+            )
+        self.assertFalse({"id-0", "id-1"} & {track["id"] for track in tracks})
+
     def test_integer_has_friendly_error(self):
         with self.assertRaisesRegex(ValueError, "whole number"):
             _integer("many", "Length")

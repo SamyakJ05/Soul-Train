@@ -27,4 +27,13 @@ document.addEventListener("DOMContentLoaded", () => {
     start.addEventListener("change", updateJourney); end.addEventListener("change", updateJourney); updateJourney();
   }
   window.setTimeout(() => document.querySelectorAll(".toast").forEach((toast) => toast.remove()), 6000);
+
+  document.querySelectorAll("form[data-loading]").forEach((form) => {
+    form.addEventListener("submit", (event) => {
+      const button = event.submitter;
+      if (!button) return;
+      button.disabled = true;
+      if (button.dataset.loadingLabel) button.textContent = button.dataset.loadingLabel;
+    });
+  });
 });

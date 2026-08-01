@@ -142,7 +142,9 @@ def _filter_genre(songs: pd.DataFrame, genre: str) -> pd.DataFrame:
 
 
 def generate_mood_journey(
-    options: JourneyOptions, allowed_track_ids: set[str] | None = None
+    options: JourneyOptions,
+    allowed_track_ids: set[str] | None = None,
+    excluded_track_ids: set[str] | None = None,
 ) -> list[dict]:
     options.validate()
     if not DATA_ARCHIVE.exists():
@@ -152,6 +154,8 @@ def generate_mood_journey(
     songs["id"] = songs["id"].astype(str)
     if allowed_track_ids is not None:
         songs = songs.loc[songs["id"].isin(allowed_track_ids)]
+    if excluded_track_ids:
+        songs = songs.loc[~songs["id"].isin(excluded_track_ids)]
     if not options.allow_explicit:
         songs = songs.loc[~songs["explicit"].astype(bool)]
     songs = _filter_genre(songs, options.genre)

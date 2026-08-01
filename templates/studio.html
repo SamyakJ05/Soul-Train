@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Review {{ draft.name }} · Soul Train{% endblock %}
+{% block content %}
+<section class="studio-shell shell">
+  <div class="product-tabs" aria-label="Soul Train features">
+    <a class="{{ 'active' if draft.mode == 'mood' }}" href="{{ url_for('mood_builder') }}"><span>↗</span>Mood Journey</a>
+    <a class="{{ 'active' if draft.mode == 'library' }}" href="{{ url_for('library_builder') }}"><span>↺</span>Library Mix</a>
+    <a href="{{ url_for('stats') }}"><span>◫</span>Your Stats</a>
+  </div>
+
+  <header class="studio-heading">
+    <div>
+      <span class="eyebrow">Playlist Studio</span>
+      <h1>Review the journey.</h1>
+      <p>Pin the tracks you love, adjust the order, or swap anything that doesn’t feel right.</p>
+    </div>
+    <div class="studio-summary" aria-label="Playlist summary">
+      <strong>{{ draft.tracks|length }}</strong><span>tracks</span>
+      <strong>{{ total_minutes }}</strong><span>minutes</span>
+    </div>
+  </header>
+
+  <form class="studio-details form-card" action="{{ url_for('update_studio_details') }}" method="post">
+    <label>Playlist name<input type="text" name="playlist_name" maxlength="100" value="{{ draft.name }}" required></label>
+    <label class="toggle"><input type="checkbox" name="private" {% if not draft.public %}checked{% endif %}><span></span><b>Keep playlist private</b></label>
+    <button class="button button-quiet button-small" type="submit">Save details</button>
+  </form>
+
+  {% if draft.mode == 'mood' %}
+  <div class="studio-arc" aria-label="Mood journey from {{ draft.options.start_mood }} to {{ draft.options.end_mood }}">
+    <b>{{ draft.options.start_mood|title }}</b><i></i><b>{{ draft.options.end_mood|title }}</b>
+  </div>
+  {% endif %}
+
+  <ol class="studio-tracklist">
+    {% for track in draft.tracks %}
+    {% set is_pinned = track.id in draft.pinned %}
+    <li id="track-{{ loop.index }}" class="studio-track {{ 'is-pinned' if is_pinned }}">
+      <span class="track-position">{{ "%02d"|format(loop.index) }}</span>
+      {% if track.image %}<img src="{{ track.image }}" alt="">{% else %}<span class="track-placeholder">♪</span>{% endif %}
+      <div class="track-copy">
+        {% if track.url %}<a href="{{ track.url }}" target="_blank" rel="noopener"><strong>{{ track.name }}</strong></a>{% else %}<strong>{{ track.name }}</strong>{% endif %}
+        <small>{{ track.artist or track.album or track.release_date or 'Spotify track' }}{% if track.explicit %} · Explicit{% endif %}</small>
+      </div>
+      <span class="track-duration">{% if track.duration_ms %}{{ track.duration_ms // 60000 }}:{{ "%02d"|format((track.duration_ms // 1000) % 60) }}{% else %}—{% endif %}</span>
+      <div class="track-actions">
+        <form action="{{ url_for('update_studio') }}" method="post"><input type="hidden" name="index" value="{{ loop.index0 }}"><button class="icon-button {{ 'active' if is_pinned }}" name="action" value="pin" type="submit" aria-label="{{ 'Unpin' if is_pinned else 'Pin' }} {{ track.name }}" title="{{ 'Unpin track' if is_pinned else 'Pin track' }}">{{ '●' if is_pinned else '○' }}</button></form>
+        <form action="{{ url_for('update_studio') }}" method="post"><input type="hidden" name="index" value="{{ loop.index0 }}"><button class="icon-button" name="action" value="up" type="submit" aria-label="Move {{ track.name }} up" title="Move up" {% if loop.first %}disabled{% endif %}>↑</button></form>
+        <form action="{{ url_for('update_studio') }}" method="post"><input type="hidden" name="index" value="{{ loop.index0 }}"><button class="icon-button" name="action" value="down" type="submit" aria-label="Move {{ track.name }} down" title="Move down" {% if loop.last %}disabled{% endif %}>↓</button></form>
+        <form action="{{ url_for('update_studio') }}" method="post" data-loading><input type="hidden" name="index" value="{{ loop.index0 }}"><input type="hidden" name="action" value="replace"><button class="track-action" type="submit" data-loading-label="Finding…" {% if is_pinned %}disabled{% endif %}>Replace</button></form>
+        <form action="{{ url_for('update_studio') }}" method="post"><input type="hidden" name="index" value="{{ loop.index0 }}"><button class="track-action danger" name="action" value="remove" type="submit" {% if is_pinned %}disabled{% endif %}>Remove</button></form>
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+
+  <div class="studio-finish form-card">
+    <div><span class="eyebrow">Ready when you are</span><h2>Create {{ draft.name }} in Spotify.</h2><p>You can continue editing it from Spotify after it is saved.</p></div>
+    <form action="{{ url_for('publish_studio') }}" method="post" data-loading>
+      <button class="button button-spotify" type="submit" data-loading-label="Creating…">Create in Spotify <span>→</span></button>
+    </form>
+  </div>
+</section>
+{% endblock %}

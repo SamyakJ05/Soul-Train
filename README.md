@@ -23,6 +23,11 @@ is read directly by pandas.
   tracks are normalized as probability distributions and compared with Hellinger
   distance; adjacent-track continuity and controlled top-candidate sampling keep
   the arc smooth without making every generated playlist identical.
+- **Playlist Studio:** previews a generated playlist before it reaches Spotify.
+  Users can pin tracks, replace or remove individual selections, adjust the order,
+  rename the playlist, and confirm its visibility before publishing. Drafts are
+  scoped to the current signed browser session, stored in SQLite under `instance/`,
+  and expire after 24 hours.
 - **Library rediscovery:** reads up to 500 saved Spotify tracks and gives older
   saves a better chance to return to the rotation.
 - **Your Stats:** displays top tracks, artists, and genres over four weeks, six
