@@ -2,7 +2,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from draft_store import create_draft, delete_draft, get_draft, save_draft
+from app.draft_store import create_draft, delete_draft, get_draft, save_draft
 
 
 class DraftStoreTests(unittest.TestCase):

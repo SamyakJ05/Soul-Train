@@ -8,30 +8,31 @@ from pathlib import Path
 from flask import Flask, flash, redirect, render_template, request, session, url_for
 from dotenv import load_dotenv
 
-load_dotenv(Path(__file__).with_name(".env"))
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+load_dotenv(PROJECT_ROOT / ".env")
 
-from admin_auth import admin_password_configured, verify_admin_password
-from analytics_service import (
+from .admin_auth import admin_password_configured, verify_admin_password
+from .analytics_service import (
     analytics_summary,
     identify_visitor,
     record_event,
     record_visit,
 )
-from draft_store import create_draft, delete_draft, get_draft, save_draft
-from playlist_service import (
+from .draft_store import create_draft, delete_draft, get_draft, save_draft
+from .playlist_service import (
     prepare_library_draft,
     prepare_mood_draft,
     publish_draft,
     replace_draft_track,
 )
-from spotify_auth import (
+from .spotify_auth import (
     missing_spotify_configuration,
     new_oauth_state,
     spotify_is_configured,
     spotify_oauth,
 )
-from spotify_client import connected_spotify
-from stats_service import listening_stats
+from .spotify_client import connected_spotify
+from .stats_service import listening_stats
 
 
 def _secure_session_cookie():
@@ -44,7 +45,11 @@ def _secure_session_cookie():
     )
 
 
-app = Flask(__name__)
+app = Flask(
+    __name__,
+    static_folder=str(PROJECT_ROOT / "static"),
+    template_folder=str(PROJECT_ROOT / "templates"),
+)
 database_target = (
     os.getenv("DATABASE_URL")
     or os.getenv("SOUL_TRAIN_DATABASE_PATH")
@@ -524,7 +529,3 @@ def _record_usage_event(event):
         )
     except Exception:
         app.logger.exception("Usage event could not be recorded")
-
-
-if __name__ == "__main__":
-    app.run(port=5001, debug=os.getenv("FLASK_DEBUG") == "1")

@@ -1,6 +1,6 @@
 import unittest
 
-from database import _postgres_placeholders, is_postgres
+from app.database import _postgres_placeholders, is_postgres
 
 
 class DatabaseCompatibilityTests(unittest.TestCase):

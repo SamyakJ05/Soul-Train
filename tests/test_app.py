@@ -4,8 +4,8 @@ import unittest
 from unittest.mock import Mock, patch
 
 from app import app
-from analytics_service import analytics_summary, identify_visitor, record_event, record_visit
-from draft_store import create_draft, get_draft
+from app.analytics_service import analytics_summary, identify_visitor, record_event, record_visit
+from app.draft_store import create_draft, get_draft
 
 
 class RouteTests(unittest.TestCase):

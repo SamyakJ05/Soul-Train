@@ -24,8 +24,9 @@ MOOD_PROFILES = {
     "cozy": (0.05, 0.62, 0.31, 0.02),
     "moody": (0.54, 0.24, 0.05, 0.17),
 }
-DATA_ARCHIVE = Path(__file__).with_name("fin_nogenre.zip")
-ENRICHMENT_FILE = Path(__file__).with_name("data") / "spotify_tracks_enriched.csv.gz"
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+DATA_ARCHIVE = PROJECT_ROOT / "fin_nogenre.zip"
+ENRICHMENT_FILE = PROJECT_ROOT / "data" / "spotify_tracks_enriched.csv.gz"
 COLUMNS = [
     "name", "explicit", "release_date", "duration_ms", "id",
     *SCORE_KEYS,

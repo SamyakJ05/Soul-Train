@@ -2,8 +2,8 @@ from dataclasses import asdict, replace
 from datetime import datetime, timezone
 import random
 
-from parse import JourneyOptions, generate_mood_journey
-from spotify_client import create_playlist
+from .parse import JourneyOptions, generate_mood_journey
+from .spotify_client import create_playlist
 
 
 GENRES = {

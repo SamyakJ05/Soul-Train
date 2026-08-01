@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from werkzeug.security import generate_password_hash
 
-from admin_auth import admin_password_configured, verify_admin_password
+from app.admin_auth import admin_password_configured, verify_admin_password
 
 
 class AdminAuthTests(unittest.TestCase):

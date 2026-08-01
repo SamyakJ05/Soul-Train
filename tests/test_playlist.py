@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pandas as pd
 
-from parse import (
+from app.parse import (
     COLUMNS,
     MOOD_PROFILES,
     JourneyOptions,
@@ -16,8 +16,8 @@ from parse import (
     _read_catalog,
     generate_mood_journey,
 )
-from playlist_service import _integer
-from spotify_client import create_playlist
+from app.playlist_service import _integer
+from app.spotify_client import create_playlist
 
 
 class JourneyTests(unittest.TestCase):
@@ -69,9 +69,9 @@ class JourneyTests(unittest.TestCase):
         _read_catalog.cache_clear()
         with (
             patch.dict("os.environ", {"CATALOG_MODE": "compact"}),
-            patch("parse.DATA_ARCHIVE", archive),
-            patch("parse.ENRICHMENT_FILE", enrichment),
-            patch("parse.pd.read_csv", return_value=frame) as read_csv,
+            patch("app.parse.DATA_ARCHIVE", archive),
+            patch("app.parse.ENRICHMENT_FILE", enrichment),
+            patch("app.parse.pd.read_csv", return_value=frame) as read_csv,
         ):
             self.assertIs(_load_catalog(), _load_catalog())
         self.assertEqual(read_csv.call_count, 1)
@@ -98,9 +98,9 @@ class JourneyTests(unittest.TestCase):
         enrichment = Mock()
         enrichment.exists.return_value = False
         with (
-            patch("parse.DATA_ARCHIVE", archive),
-            patch("parse.ENRICHMENT_FILE", enrichment),
-            patch("parse.pd.read_csv", return_value=frame),
+            patch("app.parse.DATA_ARCHIVE", archive),
+            patch("app.parse.ENRICHMENT_FILE", enrichment),
+            patch("app.parse.pd.read_csv", return_value=frame),
         ):
             tracks = generate_mood_journey(
                 JourneyOptions("peaceful", "energized", 10, discovery=0, seed=3)
@@ -123,9 +123,9 @@ class JourneyTests(unittest.TestCase):
         enrichment = Mock()
         enrichment.exists.return_value = False
         with (
-            patch("parse.DATA_ARCHIVE", archive),
-            patch("parse.ENRICHMENT_FILE", enrichment),
-            patch("parse.pd.read_csv", return_value=frame),
+            patch("app.parse.DATA_ARCHIVE", archive),
+            patch("app.parse.ENRICHMENT_FILE", enrichment),
+            patch("app.parse.pd.read_csv", return_value=frame),
         ):
             tracks = generate_mood_journey(
                 JourneyOptions("peaceful", "energized", 10, discovery=0),

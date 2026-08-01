@@ -1,6 +1,6 @@
 import spotipy
 
-from spotify_auth import spotify_oauth
+from .spotify_auth import spotify_oauth
 
 
 def connected_spotify() -> spotipy.Spotify:

@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import Mock
 
-from stats_service import listening_stats
+from app.stats_service import listening_stats
 
 
 class StatsTests(unittest.TestCase):

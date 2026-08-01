@@ -2,7 +2,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
-from analytics_service import (
+from app.analytics_service import (
     VISITOR_SUMMARY_QUERY,
     analytics_summary,
     identify_visitor,

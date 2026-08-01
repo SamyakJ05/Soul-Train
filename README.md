@@ -140,7 +140,7 @@ http://127.0.0.1:5001/callback
 Start the application:
 
 ```bash
-python app.py
+python -m app
 ```
 
 Then open <http://127.0.0.1:5001>.
@@ -256,15 +256,18 @@ required.
 ## Project structure
 
 ```text
-app.py                       Flask routes and application configuration
-parse.py                     Mood profiles, catalog loading, and journey scoring
-playlist_service.py          Playlist preparation, editing, and publishing flow
-spotify_auth.py              Spotify OAuth and session token handling
-spotify_client.py            Spotify API helpers
-stats_service.py             Listening-statistics aggregation
-analytics_service.py         Privacy-conscious product analytics
-draft_store.py               Expiring Playlist Studio drafts
-database.py                  SQLite/PostgreSQL connection compatibility
+app/                         Flask application package
+  __init__.py                Routes, configuration, and Gunicorn application
+  __main__.py                Local `python -m app` entry point
+  parse.py                   Mood profiles, catalog loading, and journey scoring
+  playlist_service.py        Playlist preparation, editing, and publishing flow
+  spotify_auth.py            Spotify OAuth and session token handling
+  spotify_client.py          Spotify API helpers
+  stats_service.py           Listening-statistics aggregation
+  analytics_service.py       Privacy-conscious product analytics
+  draft_store.py             Expiring Playlist Studio drafts
+  database.py                SQLite/PostgreSQL connection compatibility
+  admin_auth.py              Admin password verification
 templates/                   Server-rendered interface
 static/                      Styles, JavaScript, fonts, and brand assets
 data/                        Enriched catalog and provenance documentation

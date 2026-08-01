@@ -7,7 +7,7 @@ import time
 from threading import Lock
 from uuid import uuid4
 
-from database import connect
+from .database import connect
 
 
 DRAFT_LIFETIME_SECONDS = 24 * 60 * 60

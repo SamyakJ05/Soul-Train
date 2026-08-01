@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from threading import Lock
 
-from database import connect
+from .database import connect
 
 
 EVENT_COLUMNS = {
