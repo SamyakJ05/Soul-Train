@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import sqlite3
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
+from threading import Lock
+
+from database import connect
 
 
 EVENT_COLUMNS = {
@@ -12,18 +13,21 @@ EVENT_COLUMNS = {
     "playlist_published": "playlists_published",
     "stats_viewed": "stats_views",
 }
+_INITIALIZED_DATABASES = set()
+_INITIALIZE_LOCK = Lock()
 
 
 def record_visit(database_path, browser_id: str) -> None:
     now = _now()
     day = now[:10]
     with _connect(database_path) as connection:
-        _initialize(connection)
+        _initialize(connection, database_path)
         inserted = connection.execute(
             """
-            INSERT OR IGNORE INTO visitors
+            INSERT INTO visitors
                 (browser_id, first_seen, last_seen, page_views)
             VALUES (?, ?, ?, 0)
+            ON CONFLICT (browser_id) DO NOTHING
             """,
             (browser_id, now, now),
         ).rowcount
@@ -46,12 +50,13 @@ def identify_visitor(
         return
     now = _now()
     with _connect(database_path) as connection:
-        _initialize(connection)
+        _initialize(connection, database_path)
         connection.execute(
             """
-            INSERT OR IGNORE INTO visitors
+            INSERT INTO visitors
                 (browser_id, first_seen, last_seen, page_views)
             VALUES (?, ?, ?, 0)
+            ON CONFLICT (browser_id) DO NOTHING
             """,
             (browser_id, now, now),
         )
@@ -70,12 +75,13 @@ def record_event(database_path, browser_id: str, event: str) -> None:
         raise ValueError("Choose a supported analytics event.")
     now = _now()
     with _connect(database_path) as connection:
-        _initialize(connection)
+        _initialize(connection, database_path)
         connection.execute(
             """
-            INSERT OR IGNORE INTO visitors
+            INSERT INTO visitors
                 (browser_id, first_seen, last_seen, page_views)
             VALUES (?, ?, ?, 0)
+            ON CONFLICT (browser_id) DO NOTHING
             """,
             (browser_id, now, now),
         )
@@ -88,7 +94,7 @@ def record_event(database_path, browser_id: str, event: str) -> None:
 
 def analytics_summary(database_path, days: int = 14) -> dict:
     with _connect(database_path) as connection:
-        _initialize(connection)
+        _initialize(connection, database_path)
         totals = connection.execute(
             """
             SELECT
@@ -146,50 +152,59 @@ def analytics_summary(database_path, days: int = 14) -> dict:
     }
 
 
-def _connect(database_path) -> sqlite3.Connection:
-    path = Path(database_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(path, timeout=5)
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA journal_mode=WAL")
-    return connection
+def _connect(database_path):
+    return connect(database_path)
 
 
-def _initialize(connection: sqlite3.Connection) -> None:
-    connection.execute(
-        """
-        CREATE TABLE IF NOT EXISTS visitors (
-            browser_id TEXT PRIMARY KEY,
-            spotify_id TEXT,
-            display_name TEXT,
-            first_seen TEXT NOT NULL,
-            last_seen TEXT NOT NULL,
-            page_views INTEGER NOT NULL DEFAULT 0,
-            drafts_created INTEGER NOT NULL DEFAULT 0,
-            playlists_published INTEGER NOT NULL DEFAULT 0,
-            stats_views INTEGER NOT NULL DEFAULT 0
+def _initialize(connection, database_path) -> None:
+    database_key = str(database_path)
+    if database_key in _INITIALIZED_DATABASES:
+        return
+    with _INITIALIZE_LOCK:
+        if database_key in _INITIALIZED_DATABASES:
+            return
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS visitors (
+                browser_id TEXT PRIMARY KEY,
+                spotify_id TEXT,
+                display_name TEXT,
+                first_seen TEXT NOT NULL,
+                last_seen TEXT NOT NULL,
+                page_views INTEGER NOT NULL DEFAULT 0,
+                drafts_created INTEGER NOT NULL DEFAULT 0,
+                playlists_published INTEGER NOT NULL DEFAULT 0,
+                stats_views INTEGER NOT NULL DEFAULT 0
+            )
+            """
         )
-        """
-    )
-    connection.execute(
-        "CREATE INDEX IF NOT EXISTS visitors_spotify_id ON visitors (spotify_id)"
-    )
-    connection.execute(
-        """
-        CREATE TABLE IF NOT EXISTS daily_activity (
-            day TEXT PRIMARY KEY,
-            page_views INTEGER NOT NULL DEFAULT 0,
-            new_visitors INTEGER NOT NULL DEFAULT 0,
-            drafts_created INTEGER NOT NULL DEFAULT 0,
-            playlists_published INTEGER NOT NULL DEFAULT 0,
-            stats_views INTEGER NOT NULL DEFAULT 0
+        connection.execute(
+            "CREATE INDEX IF NOT EXISTS visitors_spotify_id ON visitors (spotify_id)"
         )
-        """
-    )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS daily_activity (
+                day TEXT PRIMARY KEY,
+                page_views INTEGER NOT NULL DEFAULT 0,
+                new_visitors INTEGER NOT NULL DEFAULT 0,
+                drafts_created INTEGER NOT NULL DEFAULT 0,
+                playlists_published INTEGER NOT NULL DEFAULT 0,
+                stats_views INTEGER NOT NULL DEFAULT 0
+            )
+            """
+        )
+        connection.commit()
+        _INITIALIZED_DATABASES.add(database_key)
 
 
 def _increment_daily(connection, day: str, column: str) -> None:
-    connection.execute("INSERT OR IGNORE INTO daily_activity (day) VALUES (?)", (day,))
+    connection.execute(
+        """
+        INSERT INTO daily_activity (day) VALUES (?)
+        ON CONFLICT (day) DO NOTHING
+        """,
+        (day,),
+    )
     connection.execute(
         f"UPDATE daily_activity SET {column} = {column} + 1 WHERE day = ?",
         (day,),

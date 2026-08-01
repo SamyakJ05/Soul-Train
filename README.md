@@ -11,8 +11,9 @@ Soul Train is a Flask app that creates Spotify playlists from a guided mood jour
 5. Open <http://127.0.0.1:5001>.
 
 The Spotify redirect URI configured in the developer dashboard must match
-`SPOTIPY_REDIRECT_URI`. The mood dataset stays compressed as `fin_nogenre.zip` and
-is read directly by pandas.
+`SPOTIPY_REDIRECT_URI`. Mood generation uses the enriched, compact catalog by
+default so it fits on a 512 MB service. Set `CATALOG_MODE=full` only on a host with
+substantially more memory to use the complete 1.2-million-track source.
 
 ## Playlist modes
 
@@ -62,12 +63,24 @@ variables. `ADMIN_PASSWORD` is supported as a simpler local fallback. Set
 
 This repository is a stateful Flask/WSGI application. A normal Netlify static
 deploy cannot run the Flask process, and local SQLite storage is not durable in a
-serverless runtime. Deploy the complete app on a Python host with a persistent
-disk, or keep a Netlify frontend and host the Flask API plus database separately.
-Converting the backend to Netlify Functions would require a separate migration
-and persistent storage such as Netlify Blobs or an external SQL database.
-The included `Procfile` starts the backend with Gunicorn on compatible Python
-hosting platforms.
+serverless or ephemeral runtime. The app uses local SQLite by default and switches
+to PostgreSQL whenever `DATABASE_URL` is set. Analytics tables and playlist-draft
+tables are created automatically on the first request.
+
+For a free Render + Neon deployment:
+
+1. Create a Neon PostgreSQL project and copy its pooled connection string into
+   Render as the secret `DATABASE_URL`.
+2. Set `CATALOG_MODE=compact`, `SESSION_COOKIE_SECURE=1`, and the Spotify and admin
+   secrets described above.
+3. Build with `pip install -r requirements.txt`.
+4. Start with
+   `gunicorn app:app --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT`.
+5. Set Render's health check path to `/healthz`.
+
+The included `Procfile` uses the same Gunicorn configuration. On Render's free
+service, cold starts and temporary local files are expected; persistent drafts and
+analytics remain in PostgreSQL.
 
 ## Security
 

@@ -10,7 +10,10 @@ from parse import (
     JourneyOptions,
     _candidate_pool_size,
     _hellinger_distance,
+    _hellinger_distance_from_roots,
     _journey_progress,
+    _load_catalog,
+    _read_catalog,
     generate_mood_journey,
 )
 from playlist_service import _integer
@@ -47,6 +50,32 @@ class JourneyTests(unittest.TestCase):
             float(_hellinger_distance(hype, calm)),
         )
         self.assertLessEqual(float(_hellinger_distance(calm, hype)), 1.0)
+
+    def test_fast_distance_matches_general_distance(self):
+        values = np.array([
+            [0.05, 0.85, 0.09, 0.01],
+            [0.01, 0.02, 0.17, 0.80],
+        ], dtype=np.float32)
+        target = np.array([0.02, 0.12, 0.72, 0.14], dtype=np.float32)
+        expected = _hellinger_distance(values, target)
+        actual = _hellinger_distance_from_roots(np.sqrt(values), np.sqrt(target))
+        np.testing.assert_allclose(actual, expected, atol=1e-6)
+
+    def test_compact_catalog_loads_only_model_columns_and_is_cached(self):
+        frame = pd.DataFrame(columns=[*COLUMNS, "genre"])
+        archive = Mock()
+        enrichment = Mock()
+        enrichment.exists.return_value = True
+        _read_catalog.cache_clear()
+        with (
+            patch.dict("os.environ", {"CATALOG_MODE": "compact"}),
+            patch("parse.DATA_ARCHIVE", archive),
+            patch("parse.ENRICHMENT_FILE", enrichment),
+            patch("parse.pd.read_csv", return_value=frame) as read_csv,
+        ):
+            self.assertIs(_load_catalog(), _load_catalog())
+        self.assertEqual(read_csv.call_count, 1)
+        self.assertIn("usecols", read_csv.call_args.kwargs)
 
     def test_discovery_widens_ranked_pool_but_endpoints_stay_precise(self):
         self.assertEqual(_candidate_pool_size(0, 100, False), 1)

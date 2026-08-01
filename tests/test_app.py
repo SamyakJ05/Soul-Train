@@ -50,6 +50,16 @@ class RouteTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertEqual(self.client.get(path).status_code, 200)
 
+    def test_health_check_is_lightweight_and_does_not_record_a_visit(self):
+        app.config["TRACK_USAGE"] = True
+        try:
+            response = self.client.get("/healthz")
+        finally:
+            app.config["TRACK_USAGE"] = False
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json(), {"status": "ok"})
+        self.assertFalse(Path(app.config["ANALYTICS_DATABASE"]).exists())
+
     @patch("app.spotify_user", return_value=None)
     def test_legacy_routes_point_to_builder(self, _spotify_user):
         response = self.client.get("/mood%20gradient")

@@ -1,4 +1,6 @@
+import os
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 import numpy as np
@@ -28,6 +30,25 @@ COLUMNS = [
     "name", "explicit", "release_date", "duration_ms", "id",
     *SCORE_KEYS,
 ]
+COMPACT_COLUMNS = [
+    "name", "explicit", "release_date", "id", *SCORE_KEYS, "genre",
+]
+CATALOG_DTYPES = {
+    "name": "string",
+    "explicit": "boolean",
+    "release_date": "string",
+    "duration_ms": "int32",
+    "id": "string",
+    "sad": "float32",
+    "chill": "float32",
+    "happy": "float32",
+    "hype": "float32",
+    "genre": "string",
+    "artist": "string",
+    "popularity": "float32",
+    "energy": "float32",
+    "valence": "float32",
+}
 GENRE_FAMILIES = {
     "pop": {"pop", "power-pop", "synth-pop", "indie-pop", "cantopop", "j-pop", "k-pop"},
     "rock": {"rock", "alt-rock", "hard-rock", "psych-rock", "punk-rock", "rock-n-roll", "grunge"},
@@ -96,7 +117,7 @@ def _filter_era(songs: pd.DataFrame, era: str) -> pd.DataFrame:
 
 
 def _normalize_distributions(values: np.ndarray) -> np.ndarray:
-    values = np.clip(np.asarray(values, dtype=float), 0, None)
+    values = np.clip(np.asarray(values, dtype=np.float32), 0, None)
     totals = values.sum(axis=-1, keepdims=True)
     return np.divide(values, totals, out=np.zeros_like(values), where=totals > 0)
 
@@ -106,6 +127,14 @@ def _hellinger_distance(values: np.ndarray, target: np.ndarray) -> np.ndarray:
     values = _normalize_distributions(values)
     target = _normalize_distributions(target)
     return np.linalg.norm(np.sqrt(values) - np.sqrt(target), axis=-1) / np.sqrt(2)
+
+
+def _hellinger_distance_from_roots(
+    value_roots: np.ndarray, target_root: np.ndarray
+) -> np.ndarray:
+    """Fast Hellinger distance for already-normalized square-root vectors."""
+    affinity = value_roots @ target_root
+    return np.sqrt(np.clip(1 - affinity, 0, 1))
 
 
 def _title_key(value) -> str:
@@ -119,15 +148,43 @@ def _candidate_pool_size(discovery: int, available_count: int, endpoint: bool) -
 
 
 def _load_catalog() -> pd.DataFrame:
-    base = pd.read_csv(DATA_ARCHIVE, header=None, names=COLUMNS)
-    if not ENRICHMENT_FILE.exists():
+    mode = os.getenv("CATALOG_MODE", "compact").strip().lower()
+    if mode not in {"compact", "full"}:
+        raise ValueError("CATALOG_MODE must be either 'compact' or 'full'.")
+    return _read_catalog(mode, DATA_ARCHIVE, ENRICHMENT_FILE)
+
+
+@lru_cache(maxsize=2)
+def _read_catalog(mode: str, data_archive, enrichment_file) -> pd.DataFrame:
+    # The enriched catalog retains the useful model features while fitting easily
+    # inside a 512 MB service. The 1.2M-row source remains an opt-in full mode.
+    if mode == "compact" and enrichment_file.exists():
+        return pd.read_csv(
+            enrichment_file,
+            usecols=COMPACT_COLUMNS,
+            dtype={key: CATALOG_DTYPES[key] for key in COMPACT_COLUMNS},
+        )
+
+    base = pd.read_csv(
+        data_archive,
+        header=None,
+        names=COLUMNS,
+        dtype={key: CATALOG_DTYPES[key] for key in COLUMNS},
+    )
+    if not enrichment_file.exists():
         base["genre"] = ""
         return base
 
-    enriched = pd.read_csv(ENRICHMENT_FILE)
-    metadata = enriched[["id", "genre", "artist", "popularity", "energy", "valence"]]
+    metadata_columns = ["id", "genre", "artist", "popularity", "energy", "valence"]
+    enriched_columns = [*COLUMNS, *metadata_columns[1:]]
+    enriched = pd.read_csv(
+        enrichment_file,
+        usecols=enriched_columns,
+        dtype={key: CATALOG_DTYPES[key] for key in enriched_columns},
+    )
+    metadata = enriched[metadata_columns]
     base = base.merge(metadata, on="id", how="left")
-    additions = enriched.loc[~enriched["id"].isin(base["id"])]
+    additions = enriched.loc[~enriched["id"].isin(base["id"]), base.columns]
     return pd.concat([base, additions], ignore_index=True, sort=False)
 
 
@@ -151,13 +208,12 @@ def generate_mood_journey(
         raise FileNotFoundError(f"Dataset archive not found: {DATA_ARCHIVE.name}")
 
     songs = _load_catalog()
-    songs["id"] = songs["id"].astype(str)
     if allowed_track_ids is not None:
         songs = songs.loc[songs["id"].isin(allowed_track_ids)]
     if excluded_track_ids:
         songs = songs.loc[~songs["id"].isin(excluded_track_ids)]
     if not options.allow_explicit:
-        songs = songs.loc[~songs["explicit"].astype(bool)]
+        songs = songs.loc[~songs["explicit"].fillna(False).astype(bool)]
     songs = _filter_genre(songs, options.genre)
     songs = _filter_era(songs, options.era).dropna(subset=["id", *SCORE_KEYS])
     if len(songs) < options.track_count:
@@ -167,21 +223,31 @@ def generate_mood_journey(
         )
 
     rng = np.random.default_rng(options.seed)
-    start_profile = _normalize_distributions(np.array(MOOD_PROFILES[options.start_mood]))
-    end_profile = _normalize_distributions(np.array(MOOD_PROFILES[options.end_mood]))
-    score_matrix = _normalize_distributions(songs[list(SCORE_KEYS)].to_numpy(dtype=float))
+    start_profile = _normalize_distributions(
+        np.array(MOOD_PROFILES[options.start_mood], dtype=np.float32)
+    )
+    end_profile = _normalize_distributions(
+        np.array(MOOD_PROFILES[options.end_mood], dtype=np.float32)
+    )
+    score_matrix = _normalize_distributions(
+        songs[list(SCORE_KEYS)].to_numpy(dtype=np.float32)
+    )
+    score_roots = np.sqrt(score_matrix)
     titles = songs["name"].map(_title_key).to_numpy()
     available = np.ones(len(songs), dtype=bool)
     continuity_weight = {"smooth": 0.42, "cinematic": 0.32, "surprise": 0.16}[options.curve]
 
     selected = []
-    previous_profile = None
+    previous_root = None
     progress_points = _journey_progress(options.track_count, options.curve)
     for position, progress in enumerate(progress_points):
         target = start_profile * (1 - progress) + end_profile * progress
-        scores = _hellinger_distance(score_matrix, target)
-        if previous_profile is not None:
-            scores += continuity_weight * _hellinger_distance(score_matrix, previous_profile)
+        target_root = np.sqrt(_normalize_distributions(target))
+        scores = _hellinger_distance_from_roots(score_roots, target_root)
+        if previous_root is not None:
+            scores += continuity_weight * _hellinger_distance_from_roots(
+                score_roots, previous_root
+            )
         eligible = np.flatnonzero(available)
         if not len(eligible):
             break
@@ -201,7 +267,7 @@ def generate_mood_journey(
             chosen_position = rng.choice(nearest, p=weights / weights.sum())
         chosen = eligible[chosen_position]
         selected.append(songs.iloc[chosen])
-        previous_profile = score_matrix[chosen]
+        previous_root = score_roots[chosen]
         available[titles == titles[chosen]] = False
 
     if len(selected) < options.track_count:

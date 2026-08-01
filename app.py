@@ -45,17 +45,18 @@ def _secure_session_cookie():
 
 
 app = Flask(__name__)
+database_target = (
+    os.getenv("DATABASE_URL")
+    or os.getenv("SOUL_TRAIN_DATABASE_PATH")
+    or Path(app.instance_path) / "playlist_drafts.sqlite3"
+)
 app.config.from_mapping(
     SECRET_KEY=os.getenv("FLASK_SECRET_KEY", "dev-change-me"),
     SESSION_COOKIE_HTTPONLY=True,
     SESSION_COOKIE_SAMESITE="Lax",
     SESSION_COOKIE_SECURE=_secure_session_cookie(),
-    DRAFT_DATABASE=Path(os.getenv(
-        "SOUL_TRAIN_DATABASE_PATH", Path(app.instance_path) / "playlist_drafts.sqlite3"
-    )),
-    ANALYTICS_DATABASE=Path(os.getenv(
-        "SOUL_TRAIN_DATABASE_PATH", Path(app.instance_path) / "playlist_drafts.sqlite3"
-    )),
+    DRAFT_DATABASE=database_target,
+    ANALYTICS_DATABASE=database_target,
     TRACK_USAGE=True,
     PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
 )
@@ -91,7 +92,7 @@ def spotify_user():
 def track_public_usage():
     if (
         not app.config.get("TRACK_USAGE", True)
-        or request.endpoint == "static"
+        or request.endpoint in {"static", "healthz"}
         or request.path.startswith("/admin")
     ):
         return None
@@ -119,6 +120,11 @@ def inject_navigation_state():
 @app.get("/")
 def page():
     return render_template("page.html")
+
+
+@app.get("/healthz")
+def healthz():
+    return {"status": "ok"}
 
 
 @app.get("/about")
