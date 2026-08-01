@@ -1,89 +1,273 @@
-# Soul Train
+<p align="center">
+  <img src="static/images/soul-train-mark-v2.png" alt="Soul Train logo" width="128">
+</p>
 
-Soul Train is a Flask app that creates Spotify playlists from a guided mood journey or rediscovery of a user's saved tracks.
+<h1 align="center">Soul Train</h1>
 
-## Setup
+<p align="center">
+  Turn how you feel into what you hear next.
+</p>
 
-1. Create a virtual environment and install `requirements.txt`.
-2. Copy `.env.example` to `.env` and provide credentials from a Spotify developer app.
-3. In the Spotify developer dashboard, register the exact redirect URI from `.env`.
-4. Run `python app.py`; the app loads the `.env` file automatically.
-5. Open <http://127.0.0.1:5001>.
+<p align="center">
+  <a href="https://soul-train-rqyr.onrender.com/"><strong>Open Soul Train ↗</strong></a>
+</p>
 
-The Spotify redirect URI configured in the developer dashboard must match
-`SPOTIPY_REDIRECT_URI`. Mood generation uses the enriched, compact catalog by
-default so it fits on a 512 MB service. Set `CATALOG_MODE=full` only on a host with
-substantially more memory to use the complete 1.2-million-track source.
+<p align="center">
+  <img alt="Python" src="https://img.shields.io/badge/Python-3.12-3776AB?logo=python&logoColor=white">
+  <img alt="Flask" src="https://img.shields.io/badge/Flask-3-000000?logo=flask&logoColor=white">
+  <img alt="Spotify" src="https://img.shields.io/badge/Spotify-Web_API-1DB954?logo=spotify&logoColor=white">
+  <img alt="PostgreSQL" src="https://img.shields.io/badge/PostgreSQL-Neon-4169E1?logo=postgresql&logoColor=white">
+  <img alt="Deployment" src="https://img.shields.io/badge/Deployed_on-Render-46E3B7?logo=render&logoColor=111111">
+</p>
 
-## Playlist modes
+Soul Train is a Spotify playlist companion built around intention instead of
+endless scrolling. Create a track-by-track emotional journey, bring forgotten
+favorites back into rotation, review every selection, and save the finished
+playlist directly to your Spotify account.
 
-- **Mood journey:** track-by-track scoring between two mood targets, with smooth,
-  cinematic, or surprise transitions and controls for discovery, era, explicit
-  content, genre, length, visibility, and name. Twelve mood profiles are derived
-  from the dataset's reflective, calm, joyful, and energetic scores. Profiles and
-  tracks are normalized as probability distributions and compared with Hellinger
-  distance; adjacent-track continuity and controlled top-candidate sampling keep
-  the arc smooth without making every generated playlist identical.
-- **Playlist Studio:** previews a generated playlist before it reaches Spotify.
-  Users can pin tracks, replace or remove individual selections, adjust the order,
-  rename the playlist, and confirm its visibility before publishing. Drafts are
-  scoped to the current signed browser session, stored in SQLite under `instance/`,
-  and expire after 24 hours.
-- **Library rediscovery:** reads up to 500 saved Spotify tracks and gives older
-  saves a better chance to return to the rotation.
-- **Your Stats:** displays top tracks, artists, and genres over four weeks, six
-  months, or long-term listening history. Existing users must reconnect once to
-  approve the added `user-top-read` and `user-read-recently-played` permissions.
-  Spotify does not expose a lifetime minutes total, so the dashboard clearly
-  labels its minutes figure as an estimate across the latest 50 playback records.
+> The public deployment uses Render's free service and can take a short time to
+> wake after a period of inactivity.
 
-Spotify tokens are kept in the signed browser session. For a public deployment,
-set a strong `FLASK_SECRET_KEY`, use HTTPS, and replace the cookie session with a
-server-side session store.
+## What you can do
 
-## Admin analytics
+| Experience | What it offers |
+| --- | --- |
+| **Mood Journey** | Move between two of 12 moods with controls for journey shape, discovery, era, genre, explicit content, length, name, and visibility. |
+| **Library Mix** | Rediscover older tracks from up to 500 songs in your saved Spotify library. |
+| **Playlist Studio** | Preview the result, pin favorites, replace or remove tracks, reorder the mix, and publish only when it feels right. |
+| **Your Stats** | Explore top tracks, artists, genres, unique artists, and recent listening minutes across Spotify time ranges. |
+| **Private Admin** | Review privacy-conscious usage totals and recent activity without collecting IP addresses, email addresses, tokens, or listening history. |
 
-The private `/admin` dashboard shows unique anonymous browsers, connected Spotify
-users, page views, playlist drafts, published playlists, and recent activity. It
-does not collect IP addresses, emails, Spotify tokens, or listening history.
+## How Mood Journey works
 
-Prefer a hashed password in `ADMIN_PASSWORD_HASH`. Generate one without placing
-the password in shell history:
+Soul Train represents every track as four normalized mood signals: reflective,
+calm, joyful, and energetic. Each of the 12 user-facing moods is a target blend
+of those signals.
 
-```sh
+1. The selected start and end moods define an emotional path.
+2. Smooth, cinematic, or surprise curves determine how that path develops.
+3. Hellinger distance scores tracks against each point on the path.
+4. Adjacent-track continuity keeps the transition coherent.
+5. Controlled candidate sampling uses the discovery setting to balance fit and
+   variety.
+6. Duplicate titles and previously selected tracks are excluded.
+
+The default compact catalog contains 89,740 enriched tracks and occupies about
+23 MiB in memory. A generated 30-track journey peaks at roughly 142 MiB total
+process memory, allowing the model to run on a 512 MB Render instance. The full
+1.2-million-track catalog remains available with `CATALOG_MODE=full` for hosts
+with substantially more memory.
+
+## Application flow
+
+```text
+Browser
+  └─ Flask application
+      ├─ Mood model ───────────── local enriched catalog
+      ├─ Spotify OAuth/API ───── account, library, stats, playlists
+      └─ Data store
+          ├─ SQLite ───────────── local development
+          └─ Neon PostgreSQL ─── hosted drafts and analytics
+```
+
+Spotify authorization happens on Spotify. Soul Train never receives the user's
+Spotify password. Published playlists are created directly in the connected
+account.
+
+## Tech stack
+
+- Flask and Gunicorn
+- Spotify Web API through Spotipy
+- pandas and NumPy for catalog processing and mood scoring
+- SQLite for local development
+- PostgreSQL through psycopg for hosted persistence
+- Server-rendered Jinja templates with custom CSS and JavaScript
+- Render for the web service and Neon for hosted PostgreSQL
+
+## Run locally
+
+### Requirements
+
+- Python 3.12+
+- A Spotify developer application
+- Git
+
+### Installation
+
+```bash
+git clone https://github.com/SamyakJ05/Soul-Train.git
+cd Soul-Train
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r requirements.txt
+cp .env.example .env
+```
+
+Add your Spotify application credentials to `.env`:
+
+```env
+SPOTIPY_CLIENT_ID=your-client-id
+SPOTIPY_CLIENT_SECRET=your-client-secret
+SPOTIPY_REDIRECT_URI=http://127.0.0.1:5001/callback
+FLASK_SECRET_KEY=replace-with-a-long-random-value
+SESSION_COOKIE_SECURE=0
+ADMIN_PASSWORD_HASH=
+DATABASE_URL=
+SOUL_TRAIN_DATABASE_PATH=instance/playlist_drafts.sqlite3
+CATALOG_MODE=compact
+```
+
+Register this exact local redirect URI in the Spotify Developer Dashboard:
+
+```text
+http://127.0.0.1:5001/callback
+```
+
+Start the application:
+
+```bash
+python app.py
+```
+
+Then open <http://127.0.0.1:5001>.
+
+## Configuration
+
+| Variable | Required | Purpose |
+| --- | --- | --- |
+| `SPOTIPY_CLIENT_ID` | Yes | Spotify application client ID. |
+| `SPOTIPY_CLIENT_SECRET` | Yes | Spotify application client secret. |
+| `SPOTIPY_REDIRECT_URI` | Yes | Exact Spotify OAuth callback registered in the developer dashboard. |
+| `FLASK_SECRET_KEY` | Yes in production | Signs browser sessions and OAuth state. |
+| `SESSION_COOKIE_SECURE` | Production | Set to `1` when the site uses HTTPS. |
+| `ADMIN_PASSWORD_HASH` | Recommended | Werkzeug hash used to protect `/admin`. |
+| `ADMIN_PASSWORD` | Local fallback | Plain-text development fallback; avoid in production. |
+| `DATABASE_URL` | Hosted deployments | PostgreSQL URL; takes precedence over local SQLite. |
+| `SOUL_TRAIN_DATABASE_PATH` | Local or persistent disk | SQLite database path when `DATABASE_URL` is absent. |
+| `CATALOG_MODE` | Optional | `compact` by default; `full` requires significantly more RAM. |
+
+Generate production secrets without placing the values directly in shell
+history:
+
+```bash
+python3 -c "import secrets; print(secrets.token_urlsafe(48))"
 python3 -c "import getpass; from werkzeug.security import generate_password_hash; print(generate_password_hash(getpass.getpass('Admin password: ')))"
 ```
 
-Copy the output into `.env` locally or the hosting provider's secret environment
-variables. `ADMIN_PASSWORD` is supported as a simpler local fallback. Set
-`SOUL_TRAIN_DATABASE_PATH` to a persistent disk location and
-`SESSION_COOKIE_SECURE=1` in production.
+## Spotify permissions
 
-## Deployment note
+Soul Train requests only the scopes used by its features:
 
-This repository is a stateful Flask/WSGI application. A normal Netlify static
-deploy cannot run the Flask process, and local SQLite storage is not durable in a
-serverless or ephemeral runtime. The app uses local SQLite by default and switches
-to PostgreSQL whenever `DATABASE_URL` is set. Analytics tables and playlist-draft
-tables are created automatically on the first request.
+- Modify public and private playlists
+- Read saved-library tracks
+- Read the connected user's basic private profile
+- Read top tracks and artists
+- Read recently played tracks
 
-For a free Render + Neon deployment:
+Spotify does not provide a lifetime listening-minutes total. The minutes shown
+in Your Stats are clearly labeled estimates derived from the latest available
+playback records.
 
-1. Create a Neon PostgreSQL project and copy its pooled connection string into
-   Render as the secret `DATABASE_URL`.
-2. Set `CATALOG_MODE=compact`, `SESSION_COOKIE_SECURE=1`, and the Spotify and admin
-   secrets described above.
-3. Build with `pip install -r requirements.txt`.
-4. Start with
-   `gunicorn app:app --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT`.
-5. Set Render's health check path to `/healthz`.
+## Data
 
-The included `Procfile` uses the same Gunicorn configuration. On Render's free
-service, cold starts and temporary local files are expected; persistent drafts and
-analytics remain in PostgreSQL.
+The mood model combines two local sources:
 
-## Security
+- `fin_nogenre.zip`: 1,204,025 Spotify track IDs with sad, chill, happy, and hype
+  probabilities.
+- `data/spotify_tracks_enriched.csv.gz`: a compact enriched catalog derived from
+  the [Spotify Tracks Dataset on Kaggle](https://www.kaggle.com/datasets/maharshipandya/-spotify-tracks-dataset),
+  adding genre and acoustic metadata.
 
-Credentials must never be committed. Any credentials previously stored in this
-repository should be rotated in the Spotify developer dashboard because removing
-them from the current files does not remove them from Git history.
+The enrichment pipeline is documented in [data/README.md](data/README.md) and can
+be rebuilt with:
+
+```bash
+python3 scripts/prepare_spotify_enrichment.py
+```
+
+Review the source datasets and Spotify's current platform terms before commercial
+distribution or model training.
+
+## Tests
+
+Run the complete test suite:
+
+```bash
+python3 -m unittest discover -q
+```
+
+The tests cover routes, Spotify OAuth state, playlist creation, mood scoring,
+playlist drafts, listening statistics, admin authentication, analytics, and
+SQLite/PostgreSQL compatibility.
+
+## Deploy with Render and Neon
+
+The live deployment is available at
+[soul-train-rqyr.onrender.com](https://soul-train-rqyr.onrender.com/).
+
+### Neon
+
+1. Create a Neon project.
+2. Open **Connect**, enable connection pooling, and copy the connection string.
+3. Store it only in Render as `DATABASE_URL`. Never commit it.
+
+### Render
+
+Create a Python web service from this repository with:
+
+```text
+Build command:
+pip install -r requirements.txt
+
+Start command:
+gunicorn app:app --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT
+
+Health check:
+/healthz
+```
+
+Required production values include:
+
+```env
+SPOTIPY_REDIRECT_URI=https://soul-train-rqyr.onrender.com/callback
+SESSION_COOKIE_SECURE=1
+CATALOG_MODE=compact
+DATABASE_URL=your-pooled-neon-connection-string
+```
+
+Register the same HTTPS callback in the Spotify Developer Dashboard. Database
+tables are created automatically on first use; no pre-deploy migration command is
+required.
+
+## Project structure
+
+```text
+app.py                       Flask routes and application configuration
+parse.py                     Mood profiles, catalog loading, and journey scoring
+playlist_service.py          Playlist preparation, editing, and publishing flow
+spotify_auth.py              Spotify OAuth and session token handling
+spotify_client.py            Spotify API helpers
+stats_service.py             Listening-statistics aggregation
+analytics_service.py         Privacy-conscious product analytics
+draft_store.py               Expiring Playlist Studio drafts
+database.py                  SQLite/PostgreSQL connection compatibility
+templates/                   Server-rendered interface
+static/                      Styles, JavaScript, fonts, and brand assets
+data/                        Enriched catalog and provenance documentation
+scripts/                     Dataset preparation utilities
+tests/                       Automated test suite
+```
+
+## Privacy and security
+
+- Credentials and database URLs belong in `.env` or hosting-provider secrets,
+  never in Git.
+- Spotify tokens remain in signed, HTTP-only browser sessions.
+- OAuth requests use state validation.
+- Production cookies are secure and use `SameSite=Lax`.
+- Admin responses disable caching and search indexing.
+- First-party analytics avoid IP addresses, emails, Spotify tokens, and listening
+  history.
+
+If a credential is ever committed or shared, rotate it immediately. Removing a
+secret from the latest file does not remove it from Git history.
