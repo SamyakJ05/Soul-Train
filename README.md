@@ -19,7 +19,10 @@ is read directly by pandas.
 - **Mood journey:** track-by-track scoring between two mood targets, with smooth,
   cinematic, or surprise transitions and controls for discovery, era, explicit
   content, genre, length, visibility, and name. Twelve mood profiles are derived
-  from the dataset's reflective, calm, joyful, and energetic scores.
+  from the dataset's reflective, calm, joyful, and energetic scores. Profiles and
+  tracks are normalized as probability distributions and compared with Hellinger
+  distance; adjacent-track continuity and controlled top-candidate sampling keep
+  the arc smooth without making every generated playlist identical.
 - **Library rediscovery:** reads up to 500 saved Spotify tracks and gives older
   saves a better chance to return to the rotation.
 - **Your Stats:** displays top tracks, artists, and genres over four weeks, six

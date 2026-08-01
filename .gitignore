@@ -7,3 +7,4 @@ __pycache__/
 .pytest_cache/
 .venv/
 songs2.csv
+data/spotify_tracks_114k.csv
